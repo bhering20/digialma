@@ -204,6 +204,55 @@ func essence_move(ess: String) -> String:
 const STRONG := {"Fogo": ["Planta", "Gelo", "Inseto"], "Água": ["Fogo"], "Planta": ["Água"], "Elétrico": ["Água", "Voador"],
 	"Gelo": ["Planta", "Voador"], "Voador": ["Planta", "Inseto"], "Inseto": ["Planta", "Psíquico"], "Psíquico": []}
 
+# --- MAPAS E ZONAS DO IDLE (estilo Taskbar Hero)
+## Cada região é um mapa com 10 zonas. Os Nefastos não param de vir; cada
+## zona é mais forte. Se o grupo inteiro cair, volta uma zona. Na zona 10
+## completa aparece o Santuário (o boss do mapa). Os elementos de cada mapa
+## pressionam o inicial: o Fogo sobra na Floresta, sofre na Costa (Água) e
+## precisa de parceiros de outros tipos para seguir.
+const ZONES := 10
+const ZONE_LV := [3, 15, 27]  # nível mínimo na zona 1 de cada mapa (+1 por zona)
+const ZONE_POOLS := [
+	# Floresta: Planta/Inseto/Voador (bom para Fogo); no fim, a Água começa a aparecer
+	[[15, 1, 5, 4], [15, 16, 1, 2, 5], [16, 2, 3, 5, 12]],
+	# Costa: Água/Elétrico (castiga o Fogo)
+	[[12, 5, 15, 4], [12, 11, 13, 5], [13, 11, 14, 6]],
+	# Monte Brasa: Fogo/Gelo/Psíquico
+	[[7, 5, 11, 10], [8, 6, 10, 11], [8, 9, 6, 17, 18]],
+]
+const ZONE_RAROS := [[10, 16], [6, 10, 16], [6, 16, 10]]
+## Captura automática de raros no idle (quando você não clica a tempo).
+## AUTO_RARE_BASE é a chance base; auto_rare_bonus fica pronto para itens
+## futuros (ex.: um item que aumenta a chance).
+const AUTO_RARE_BASE := 0.08
+var auto_rare_bonus := 0.0
+var zone := {}       # mapa -> zona atual
+var zone_max := {}   # mapa -> maior zona liberada
+var zone_kills := {} # mapa -> purificações na zona atual
+var zone_auto := true
+
+
+func zone_of(r: int) -> int:
+	return int(zone.get(r, 1))
+
+
+func zone_need(z: int) -> int:
+	return 15 + z * 3
+
+
+func zone_levels(r: int, z: int) -> Vector2i:
+	var lo: int = ZONE_LV[r] + z - 1
+	return Vector2i(lo, lo + 2)
+
+
+func zone_pool(r: int, z: int) -> Array:
+	return ZONE_POOLS[r][0 if z <= 3 else (1 if z <= 7 else 2)]
+
+
+func auto_rare_chance() -> float:
+	return AUTO_RARE_BASE + auto_rare_bonus + (0.42 if elo_level("chamado") > 0 else 0.0)
+
+
 # --- Regiões da fatia jogável
 const REGIONS := [
 	{"nome": "Floresta Sussurrante", "bg": "res://assets/packs/scarloxy_mpwsp01/backgrounds/background1.png", "tint": Color(1, 1, 1),
@@ -296,7 +345,7 @@ var tutorial := {"idle": false, "batalha": false, "especial": false, "escanear":
 var battle_count := 0
 var seen := {}
 var intro_done := false
-var options := {"fullscreen": false, "musica": 80, "efeitos": 90, "janela_ampla": false, "dicas": true, "painel": 1.25, "jogo_compacto": true, "duelo_faixa": true}
+var options := {"alerta_som": true, "fullscreen": false, "musica": 80, "efeitos": 90, "janela_ampla": false, "dicas": true, "painel": 1.25, "jogo_compacto": true, "duelo_faixa": true}
 const PANEL_SIZES := [1.0, 1.25, 1.5, 2.0]
 
 
@@ -338,9 +387,9 @@ void fragment() {
 
 
 # ---------------------------------------------------------------- SAVE
-const VERSION := "0.1"
+const VERSION := "0.2"
 const SAVE_PATH := "user://digialma_save.dat"
-const SAVE_KEYS := ["elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp"]
+const SAVE_KEYS := ["zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp"]
 var last_seen := 0  # quando o jogo foi salvo pela última vez (para o progresso offline)
 var _save_t := 0.0
 var _testing := false
@@ -467,6 +516,8 @@ func _ready() -> void:
 			_debug_v24()
 		elif a == "--shot=v25":
 			_debug_v25()
+		elif a == "--shot=v26":
+			_debug_v26()
 		elif a == "--shot=v20":
 			_debug_v20()
 		elif a == "--shot=v19":
@@ -1054,6 +1105,10 @@ func new_game(starter: int) -> void:
 	reserve = []
 	elo_up = {}
 	gear = []
+	zone = {}
+	zone_max = {}
+	zone_kills = {}
+	zone_auto = true
 	cristais = 1
 	elo_lv = 1
 	elo_xp = 0
@@ -1910,4 +1965,33 @@ func _debug_v25() -> void:
 		idle.panel_win.get_texture().get_image().save_png("/tmp/v25/evo.png")
 	get_viewport().get_texture().get_image().save_png("/tmp/v25/strip.png")
 	print("DEPOIS lv=", team[0]["lv"], " id=", team[0]["id"], " bits=", bits, " prog=", idle.progress)
+	get_tree().quit()
+
+
+func _debug_v26() -> void:
+	DirAccess.make_dir_recursive_absolute("/tmp/v26")
+	get_tree().create_timer(100.0, true, false, true).timeout.connect(get_tree().quit)
+	await get_tree().create_timer(0.5).timeout
+	new_game(7)
+	tutorial["idle"] = true
+	var mode := OS.get_environment("ZONA")
+	if mode == "derrota":
+		# Brasito Nv 8 na Costa, zona 4 (Água castiga Fogo)
+		badges = 1
+		region = 1
+		team[0]["lv"] = 8
+		zone[1] = 4
+		zone_max[1] = 4
+	else:
+		team[0]["lv"] = 9
+		zone[0] = 1
+		zone_kills[0] = 12
+	team[0]["hp"] = max_hp(team[0])
+	get_tree().change_scene_to_file("res://scenes/idle.tscn")
+	for i in 90:
+		await get_tree().create_timer(1.0).timeout
+		if i % 10 == 0:
+			get_viewport().get_texture().get_image().save_png("/tmp/v26/%s_%02d.png" % [mode, i])
+		if i % 5 == 0:
+			print("t=", i, " zona=", zone.get(region, 1), " kills=", zone_kills.get(region, 0), " hp=", team[0]["hp"], "/", max_hp(team[0]), " lv=", team[0]["lv"])
 	get_tree().quit()

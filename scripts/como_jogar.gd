@@ -4,7 +4,8 @@ extends Control
 const UI := "res://assets/ui/idle_%s.png"
 const ROWS := [
 	["purif", "Seu grupo explora e purifica Nefastos sozinho. Deixe a faixa rodando enquanto usa o PC. Mesmo fechado, ele continua (até 8h)."],
-	["santuario", "Encha o caminho até o Santuário e desafie o líder. Ele é forte: suba de nível, capture e funda Digialmas antes."],
+	["santuario", "Cada mapa tem 10 zonas, cada vez mais fortes (1-1, 1-2...). Se o grupo todo cair, volta uma zona. Na zona 10, o Santuário: vença o líder para purificar o mapa."],
+	["auto", "Use < > para voltar a zonas liberadas e farmar. O botão de setas circulares liga/desliga o avanço automático."],
 	["lutar", "Espadas pulsando = um Digialma raro quer lutar. Clique nelas para o duelo começar ali mesmo, na faixa."],
 	["tipo_fogo", "No duelo, escolha o golpe e clique (ou Espaço) quando o anel fechar no inimigo. Anel vermelho no seu Digialma: clique na hora para desviar."],
 	["laco", "Inimigo fraco? Use o Selo de Alma para capturar. Só 2 tentativas, e o Elo precisa ter nível para a raridade dele."],
@@ -30,7 +31,7 @@ func _ready() -> void:
 	v.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
 	v.position = Vector2(470, 18)
 	add_child(v)
-	var y := 44.0
+	var y := 40.0
 	for r in ROWS:
 		var ic := TextureRect.new()
 		ic.texture = Game.tex(UI % r[0])
@@ -45,7 +46,7 @@ func _ready() -> void:
 		l.size = Vector2(556, 40)
 		l.add_theme_font_size_override("font_size", 9)
 		add_child(l)
-		y += 42.0
+		y += 36.0
 	var tip := Label.new()
 	tip.text = "Arraste a faixa para onde quiser. Passe o mouse nela para ver os botões. O progresso salva sozinho."
 	tip.add_theme_font_size_override("font_size", 8)

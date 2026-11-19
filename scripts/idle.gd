@@ -48,6 +48,10 @@ var want_sanct := false
 var pending_evo: Array = []
 var approaching := false
 var hold_evo := false
+var sfx: AudioStreamPlayer
+var zone_l: Label
+var hp_bars: Array = []
+const MiniBar = preload("res://scripts/strip_duel.gd").MiniBar
 var my_region := 0
 var gym: Sprite2D
 var leader_spr: AnimatedSprite2D
@@ -55,6 +59,8 @@ var sanct_btn: Button
 var dueling := false
 var duel_btn: Button
 ## Quanto o caminho do idle anda por purificação (bem mais longo que jogando).
+## Dano que o grupo leva no idle (o idle é mais leve que o duelo)
+const IDLE_TAKEN := 0.4
 const STEP_MIN := 0.8
 const STEP_MAX := 1.3
 var drag_off := Vector2i.ZERO
@@ -86,10 +92,15 @@ func _ready() -> void:
 		next_prop += rng.randf_range(40, 110)
 	_spawn_party()
 	my_region = Game.region
-	progress = float(Game.idle_prog.get(my_region, 0.0))
+	if Game.zone_max.get(my_region, 0) < 1:
+		Game.zone_max[my_region] = 1
+	_sync_progress()
+	sfx = AudioStreamPlayer.new()
+	add_child(sfx)
 	_build_hud()
 	_offline_gains()
-	if progress >= 100.0:
+	_heal_party(1.0, true)
+	if progress >= 100.0 and Game.zone_of(my_region) >= Game.ZONES:
 		_sanctuary_ready.call_deferred()
 	_log("%s começou a explorar %s." % [Game.mon_name(Game.team[0]), reg["nome"]])
 	if not Game.tutorial.get("idle", false):
@@ -118,7 +129,9 @@ func _offline_gains() -> void:
 	Game.bits += b
 	bits_gained += b
 	purified += n
-	progress = minf(100.0, progress + n * 1.0)
+	var zk: int = Game.zone_kills.get(my_region, 0)
+	Game.zone_kills[my_region] = mini(Game.zone_need(Game.zone_of(my_region)), zk + n)
+	_sync_progress()
 	var cr := int(n * 0.05)
 	Game.cristais += cr
 	Game.gain_elo(n * 2)
@@ -350,10 +363,33 @@ func _build_hud() -> void:
 	ph.add_theme_constant_override("separation", 3)
 	ph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(ph)
+	ph.mouse_filter = Control.MOUSE_FILTER_PASS
+	var prev := _pill("<", 14)
+	prev.custom_minimum_size = Vector2(14, 13)
+	prev.tooltip_text = "Zona anterior (para farmar)"
+	prev.pressed.connect(func(): _step_zone(-1))
+	ph.add_child(prev)
+	zone_l = Label.new()
+	zone_l.custom_minimum_size = Vector2(28, 0)
+	zone_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_outline(zone_l, Color("ffd84a"))
+	zone_l.mouse_filter = Control.MOUSE_FILTER_PASS
+	ph.add_child(zone_l)
+	var nxt := _pill(">", 14)
+	nxt.custom_minimum_size = Vector2(14, 13)
+	nxt.tooltip_text = "Próxima zona liberada"
+	nxt.pressed.connect(func(): _step_zone(1))
+	ph.add_child(nxt)
+	var auto := _icon_btn("auto", "Avançar sozinho para a próxima zona (desligado: fica farmando aqui)")
+	auto.custom_minimum_size = Vector2(18, 13)
+	auto.modulate = Color.WHITE if Game.zone_auto else Color(0.5, 0.5, 0.55)
+	auto.pressed.connect(func():
+		Game.zone_auto = not Game.zone_auto
+		auto.modulate = Color.WHITE if Game.zone_auto else Color(0.5, 0.5, 0.55))
+	ph.add_child(auto)
 	var shrine := _ico("santuario")
-	shrine.tooltip_text = "Caminho até o %s" % reg["lider"]["ginasio"]
+	shrine.tooltip_text = "Zona 10 completa = %s" % reg["lider"]["ginasio"]
 	shrine.mouse_filter = Control.MOUSE_FILTER_PASS
-	ph.add_child(shrine)
 	prog = ProgressBar.new()
 	prog.show_percentage = false
 	prog.custom_minimum_size = Vector2(70, 5)
@@ -370,6 +406,7 @@ func _build_hud() -> void:
 	bgs.set_border_width_all(1)
 	prog.add_theme_stylebox_override("background", bgs)
 	ph.add_child(prog)
+	ph.add_child(shrine)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -493,9 +530,13 @@ func _refresh() -> void:
 		cnt["bits"].text = str(bits_gained)
 		cnt["gema"].text = str(items_found)
 		cnt["coracao"].text = str(captured)
+	_sync_progress()
 	prog.value = progress
-	prog.tooltip_text = "Caminho até o Santuário: %d%%" % int(progress)
-	Game.idle_prog[my_region] = progress
+	var z := Game.zone_of(my_region)
+	prog.tooltip_text = "Zona %d-%d: %d/%d purificações" % [my_region + 1, z, int(Game.zone_kills.get(my_region, 0)), Game.zone_need(z)]
+	if zone_l:
+		zone_l.text = "%d-%d" % [my_region + 1, z]
+		zone_l.tooltip_text = "Mapa %d, zona %d de %d (Nefastos Nv %d-%d)" % [my_region + 1, z, Game.ZONES, Game.zone_levels(my_region, z).x, Game.zone_levels(my_region, z).y]
 	if is_instance_valid(sanct_btn):
 		sanct_btn.visible = sanct_ready and not dueling and not want_sanct and is_instance_valid(leader_spr)
 	if duel_btn:
@@ -547,6 +588,12 @@ func _spawn_party() -> void:
 		pet.position = Vector2(240 - i * 38, GROUND)
 		stage.add_child(pet)
 		pets.append(pet)
+		var hb = MiniBar.new()
+		hb.col = Color("6fe08a")
+		hb.w = 20.0
+		hb.h = 2
+		add_child(hb)
+		hp_bars.append(hb)
 	kid = AnimatedSprite2D.new()
 	kid.sprite_frames = Game.char_frames(Game.player_char)
 	kid.play("right")
@@ -581,6 +628,12 @@ func _process(delta: float) -> void:
 	for h in hud:
 		h.modulate.a = hud_a
 		h.visible = hud_a > 0.02
+	for i in hp_bars.size():
+		if i < pets.size() and i < Game.team.size():
+			var hb = hp_bars[i]
+			hb.position = pets[i].position + Vector2(-10, -40 if Game.FOOT[Game.team[i]["id"]] > 85 else -36)
+			hb.target = clampf(float(Game.team[i]["hp"]) / Game.max_hp(Game.team[i]), 0.0, 1.0)
+			hb.visible = not dueling and (hb.target < 0.999 or hud_a > 0.05)
 	if not walking:
 		return
 	road.scroll += SPEED * delta
@@ -604,7 +657,7 @@ func _loop() -> void:
 	while is_inside_tree():
 		_set_walking(not sanct_ready or approaching)
 		var faro: float = [1.0, 0.75, 0.55][Game.elo_level("faro")]
-		var until := Time.get_ticks_msec() + int(rng.randf_range(6.0, 11.0) * faro * 1000.0)
+		var until := Time.get_ticks_msec() + int(rng.randf_range(2.5, 5.0) * faro * 1000.0)
 		while Time.get_ticks_msec() < until and not want_duel and not want_sanct and (pending_evo.is_empty() or hold_evo or is_instance_valid(panel_win)) and is_inside_tree():
 			await get_tree().process_frame
 		if not is_inside_tree():
@@ -623,9 +676,15 @@ func _loop() -> void:
 			continue
 		if sanct_ready:
 			continue
-		var raro := rng.randf() < 0.18
-		var sp: int = reg["raros"][rng.randi() % reg["raros"].size()] if raro else reg["selvagens"][rng.randi() % reg["selvagens"].size()]
-		var e := Game.new_monster(sp, rng.randi_range(reg["nv"][0], reg["nv"][1]), Game.roll_rarity(1 if raro else 0))
+		var z := Game.zone_of(my_region)
+		var raro := rng.randf() < 0.06
+		var pool: Array = Game.ZONE_RAROS[my_region] if raro else Game.zone_pool(my_region, z)
+		var sp: int = pool[rng.randi() % pool.size()]
+		var lv := Game.zone_levels(my_region, z)
+		var rr := Game.roll_rarity(1 if raro else 0)
+		if rng.randf() < z * 0.015:
+			rr = mini(rr + 1, 4)  # zonas altas: Nefastos mais raros
+		var e := Game.new_monster(sp, rng.randi_range(lv.x, lv.y), rr)
 		e["nefasto"] = true
 		e["raro"] = raro
 		# Épico/Lendário: pede para ser jogado (batalha completa)
@@ -666,32 +725,10 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 		# Elo fraco demais: não dá para guardar, só purificar
 		_pop_icon(kid.position + Vector2(0, -44), "cadeado")
 	_log("Um %s Nefasto apareceu!" % Game.mon_title(e), Game.rar_color(rar) if rar > 0 else Color("d8b8ff"))
-	# batalha automática: troca de golpes até o Nefasto ser purificado
-	var hits := rng.randi_range(3, 5)
-	for i in hits:
-		var attacker: AnimatedSprite2D = pets[i % pets.size()]
-		var home := attacker.position
-		attacker.play("attack")
-		attacker.animation_finished.connect(func(): attacker.play("idle"), CONNECT_ONE_SHOT)
-		await create_tween().tween_property(attacker, "position:x", m.position.x - 30, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN).finished
-		mat.set_shader_parameter("flash", 1.0)
-		_pop_text(m.position + Vector2(0, -40), str(rng.randi_range(6, 14)), Color.WHITE)
-		_burst(m.position + Vector2(0, -24), Color("fff3a8"), 8)
-		create_tween().tween_property(attacker, "position", home, 0.22)
-		await get_tree().create_timer(0.12).timeout
-		mat.set_shader_parameter("flash", 0.0)
-		await get_tree().create_timer(0.45).timeout
-		if i < hits - 1 and rng.randf() < 0.5:
-			# o Nefasto revida (o time desvia sozinho às vezes)
-			var back := m.position
-			await create_tween().tween_property(m, "position:x", pets[0].position.x + 26, 0.14).finished
-			var dodge: bool = Game.has_skill(Game.team[0], "g5") or rng.randf() < 0.5
-			if dodge:
-				_pop_icon(pets[0].position + Vector2(0, -34), "desvio")
-			else:
-				_pop_text(pets[0].position + Vector2(0, -34), str(rng.randi_range(3, 8)), Color("ff9a9a"))
-			create_tween().tween_property(m, "position", back, 0.22)
-			await get_tree().create_timer(0.4).timeout
+	# batalha automática de verdade: atributos, tipos e vida
+	if not await _fight(e, m, mat):
+		await _defeat(m)
+		return
 	var mpos := m.position
 	_elo_xp(2 + rar)
 	await _purify_fx(m, mat)
@@ -701,7 +738,8 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 	xp_gained += xp
 	bits_gained += b
 	Game.bits += b
-	progress = minf(100.0, progress + rng.randf_range(STEP_MIN, STEP_MAX))
+	Game.zone_kills[my_region] = int(Game.zone_kills.get(my_region, 0)) + 1
+	_heal_party(0.2)
 	_give_xp(xp)
 	_log("%s foi purificado! +%d XP  +%d bits" % [Game.mon_name(e), xp, b], Color("aef7c8"))
 	# chance de amuleto (raridade do Nefasto ajuda)
@@ -724,8 +762,183 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 		_log("Purificação Automática: %s quis ficar com você! (%s)" % [Game.mon_name(e), where], Color("ffd84a"))
 		_pop_icon(kid.position + Vector2(0, -44), "coracao")
 	_refresh()
-	if progress >= 100.0 and not sanct_ready:
-		await _sanctuary_ready()
+	await _check_zone()
+
+
+# ---------------------------------------------------------------- zonas
+func _sync_progress() -> void:
+	var z := Game.zone_of(my_region)
+	progress = clampf(float(Game.zone_kills.get(my_region, 0)) / Game.zone_need(z) * 100.0, 0.0, 100.0)
+
+
+## Terminou a zona: avança (se o automático estiver ligado) ou, na zona 10,
+## o Santuário aparece.
+func _check_zone() -> void:
+	var z := Game.zone_of(my_region)
+	if int(Game.zone_kills.get(my_region, 0)) < Game.zone_need(z):
+		return
+	if z >= Game.ZONES:
+		if not sanct_ready:
+			await _sanctuary_ready()
+		return
+	Game.zone_max[my_region] = maxi(int(Game.zone_max.get(my_region, 1)), z + 1)
+	if Game.zone_auto:
+		Game.zone[my_region] = z + 1
+		Game.zone_kills[my_region] = 0
+		_heal_party(1.0, true)
+		_sparkle(kid.position + Vector2(0, -30))
+		_pop_text(kid.position + Vector2(-6, -50), "%d-%d" % [my_region + 1, z + 1], Color("ffd84a"))
+	else:
+		Game.zone_kills[my_region] = 0  # farmando: repete a zona
+	_refresh()
+
+
+## Setas: anda pelas zonas liberadas, inclusive de mapas já purificados.
+func _step_zone(d: int) -> void:
+	if dueling or sanct_ready and d > 0:
+		return
+	var r := my_region
+	var z := Game.zone_of(r) + d
+	if z < 1:
+		if r == 0:
+			return
+		r -= 1
+		z = int(Game.zone_max.get(r, Game.ZONES))
+	elif z > int(Game.zone_max.get(r, 1)):
+		if r + 1 <= mini(Game.badges, Game.REGIONS.size() - 1):
+			r += 1
+			z = 1
+		else:
+			return
+	Game.zone[r] = z
+	Game.zone_kills[r] = 0
+	if r != my_region:
+		Game.region = r
+		Game.change_scene("res://scenes/idle.tscn")
+		return
+	_refresh()
+
+
+func _lead_idx() -> int:
+	for i in mini(Game.team.size(), pets.size()):
+		if int(Game.team[i]["hp"]) > 0:
+			return i
+	return -1
+
+
+func _heal_party(frac: float, revive := false) -> void:
+	for i in Game.team.size():
+		var m: Dictionary = Game.team[i]
+		if int(m["hp"]) <= 0 and not revive:
+			continue
+		m["hp"] = mini(Game.max_hp(m), int(m["hp"]) + int(Game.max_hp(m) * frac))
+		if i < pets.size():
+			pets[i].modulate = Color.WHITE
+
+
+## Melhor golpe básico contra o Nefasto (tipo, STAB e poder).
+func _best_move(m: Dictionary, e: Dictionary) -> String:
+	var best := ""
+	var score := -1.0
+	var et: String = Game.MONSTERS[e["id"]]["tipo"]
+	for mk in Game.moves_of(m):
+		var mv: Dictionary = Game.MOVES[mk]
+		if mv["cd"] > 0:
+			continue
+		var sc: float = mv["poder"] * Game.effectiveness(mv["tipo"], et) * (1.2 if mv["tipo"] == Game.MONSTERS[m["id"]]["tipo"] else 1.0)
+		if sc > score:
+			score = sc
+			best = mk
+	return best if best != "" else Game.moves_of(m)[0]
+
+
+## Luta automática. Retorna false se o grupo inteiro cair.
+func _fight(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> bool:
+	e["hp"] = Game.max_hp(e)
+	var ebar = MiniBar.new()
+	ebar.col = Color("ff5a6a")
+	ebar.w = 28.0
+	ebar.position = m.position + Vector2(-14, -44)
+	add_child(ebar)
+	var et: String = Game.MONSTERS[e["id"]]["tipo"]
+	while is_inside_tree():
+		var li := _lead_idx()
+		if li < 0:
+			ebar.queue_free()
+			return false
+		var lm: Dictionary = Game.team[li]
+		var pet = pets[li]
+		# ataque do parceiro
+		var mk := _best_move(lm, e)
+		var mv: Dictionary = Game.MOVES[mk]
+		var crit := rng.randf() < 0.12
+		var dmg := int(Game.calc_damage(lm, e, mv, crit) * (1.0 + Game.skill_dmg(lm)))
+		var home: Vector2 = pet.position
+		pet.play("attack")
+		pet.animation_finished.connect(func(): pet.play("idle"), CONNECT_ONE_SHOT)
+		await create_tween().tween_property(pet, "position:x", m.position.x - 30, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN).finished
+		mat.set_shader_parameter("flash", 1.0)
+		var eff := Game.effectiveness(mv["tipo"], et)
+		_pop_text(m.position + Vector2(0, -40), str(dmg), Color("ffd84a") if eff > 1.0 or crit else (Color(0.7, 0.7, 0.75) if eff < 1.0 else Color.WHITE))
+		if eff > 1.0:
+			_pop_icon(m.position + Vector2(10, -30), "fraco")
+		_burst(m.position + Vector2(0, -24), Game.TYPE_COLORS.get(mv["tipo"], Color("fff3a8")), 8)
+		create_tween().tween_property(pet, "position", home, 0.22)
+		e["hp"] = maxi(0, int(e["hp"]) - dmg)
+		ebar.target = float(e["hp"]) / Game.max_hp(e)
+		await get_tree().create_timer(0.12).timeout
+		mat.set_shader_parameter("flash", 0.0)
+		if e["hp"] <= 0:
+			await get_tree().create_timer(0.25).timeout
+			ebar.queue_free()
+			return true
+		await get_tree().create_timer(0.35).timeout
+		# o Nefasto revida
+		var emoves: Array = []
+		for k in Game.moves_of(e):
+			if not Game.MOVES[k].get("supremo", false):
+				emoves.append(k)
+		var emv: Dictionary = Game.MOVES[emoves[rng.randi() % emoves.size()]]
+		var back := m.position
+		await create_tween().tween_property(m, "position:x", pet.position.x + 26, 0.14).finished
+		var dodge: bool = Game.has_skill(lm, "g5") or rng.randf() < 0.18 + Game.gear_bonus(lm, "janela")
+		if dodge:
+			_pop_icon(pet.position + Vector2(0, -34), "desvio")
+		else:
+			var d2 := maxi(1, int(Game.calc_damage(e, lm, emv, false) * IDLE_TAKEN * maxf(0.4, 1.0 - Game.skill_def(lm))))
+			lm["hp"] = maxi(0, int(lm["hp"]) - d2)
+			_pop_text(pet.position + Vector2(0, -34), str(d2), Color("ff9a9a"))
+			pet.modulate = Color(1.6, 0.6, 0.6)
+			get_tree().create_timer(0.12).timeout.connect(func(): if is_instance_valid(pet): pet.modulate = Color.WHITE if int(lm["hp"]) > 0 else Color(0.35, 0.35, 0.45, 0.55))
+			if lm["hp"] <= 0:
+				_burst(pet.position + Vector2(0, -20), Color(0.6, 0.6, 0.7), 10)
+		create_tween().tween_property(m, "position", back, 0.22)
+		await get_tree().create_timer(0.4).timeout
+	return false
+
+
+## O grupo inteiro caiu: o Nefasto vence, todos voltam uma zona e se recuperam.
+func _defeat(m: AnimatedSprite2D) -> void:
+	_pop_icon(kid.position + Vector2(0, -44), "fugir")
+	_burst(kid.position + Vector2(0, -20), Color("b050ff"), 16)
+	await create_tween().tween_property(m, "position:x", W + 60, 0.6).finished
+	m.queue_free()
+	var z := Game.zone_of(my_region)
+	Game.zone[my_region] = maxi(1, z - 1)
+	Game.zone_kills[my_region] = 0
+	_heal_party(1.0, true)
+	for p in pets:
+		p.modulate = Color.WHITE
+	print("[idle] derrota: zona %d -> %d" % [z, Game.zone_of(my_region)])
+	_refresh()
+
+
+func _alert(name: String) -> void:
+	if not Game.options.get("alerta_som", true):
+		return
+	sfx.stream = load("res://assets/sfx/%s.wav" % name)
+	sfx.volume_db = linear_to_db(maxf(0.01, Game.options.get("efeitos", 90) / 100.0)) - 6.0
+	sfx.play()
 
 
 ## Épico/Lendário: o Digialma desafia e fica esperando numa fila (até 3).
@@ -755,6 +968,7 @@ func _duel_call(e: Dictionary) -> void:
 	_pop_text(m.position + Vector2(0, -44), "!", Game.rar_color(e["rar"]))
 	Game.duel_queue.append(e)
 	DisplayServer.window_request_attention()
+	_alert("alerta_raro")
 	_log("UM %s %s! Ele quer lutar com você: clique em LUTAR!" % [Game.mon_name(e).to_upper(), Game.RARITY[e["rar"]]["nome"].to_upper()], Game.rar_color(e["rar"]))
 	_refresh()
 	await get_tree().create_timer(2.6).timeout
@@ -796,6 +1010,7 @@ func _rare_call(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> void
 	pulse.tween_property(flash, "modulate:a", 0.2, 0.35)
 	# tenta chamar atenção do sistema (pisca na barra de tarefas)
 	DisplayServer.window_request_attention()
+	_alert("alerta_raro")
 	rare_waiting = true
 	var hit := Button.new()
 	hit.flat = true
@@ -811,11 +1026,11 @@ func _rare_call(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> void
 	flash.queue_free()
 	hit.queue_free()
 	rare_waiting = false
-	if rare_answer == "" and Game.elo_level("chamado") > 0 and rng.randf() < 0.5:
+	if rare_answer == "" and rng.randf() < Game.auto_rare_chance():
 		await _purify_fx(m, mat)
 		captured += 1
 		e["hp"] = Game.max_hp(e)
-		_log("Chamado Persistente: o Elo purificou %s sozinho! (%s)" % [Game.mon_name(e), Game.add_partner(e)], Color("ffd84a"))
+		_log("Captura automática: o Elo purificou %s sozinho! (%s)" % [Game.mon_name(e), Game.add_partner(e)], Color("ffd84a"))
 		_pop_icon(kid.position + Vector2(0, -44), "coracao")
 		_refresh()
 		return
@@ -868,6 +1083,7 @@ func _sanctuary_ready() -> void:
 		return
 	sanct_ready = true
 	DisplayServer.window_request_attention()
+	_alert("alerta_santuario")
 	var ld: Dictionary = reg["lider"]
 	gym = Sprite2D.new()
 	gym.texture = Game.tex(OBJ + reg["arena"] + ".png")
@@ -918,7 +1134,7 @@ func _rec_lv() -> int:
 	var top := 0
 	for pr in reg["lider"]["time"]:
 		top = maxi(top, pr[1])
-	return top - 2
+	return Game.ZONE_LV[my_region] + Game.ZONES
 
 
 func _sanctuary_challenge() -> void:
@@ -936,8 +1152,11 @@ func _sanctuary_challenge() -> void:
 	var won := true
 	_pop_text(leader_spr.position + Vector2(-2, -40), "!", Color("ffd84a"))
 	await get_tree().create_timer(0.5).timeout
-	for pair in ld["time"]:
-		var e := Game.new_monster(pair[0], pair[1], pair[2] if pair.size() > 2 else 0)
+	var boss_off := [1, 2, 4]
+	for bi in ld["time"].size():
+		var pair: Array = ld["time"][bi]
+		var blv: int = Game.ZONE_LV[my_region] + Game.ZONES - 1 + boss_off[mini(bi, 2)]
+		var e := Game.new_monster(pair[0], blv, pair[2] if pair.size() > 2 else 0)
 		e["nefasto"] = Game.region_corrupt(Game.region)
 		var d = load("res://scripts/strip_duel.gd").new()
 		d.host = self
@@ -1016,15 +1235,17 @@ func _sanctuary_win() -> void:
 	_pop_icon(leader_spr.position + Vector2(0, -36), "coracao")
 	await get_tree().create_timer(2.4).timeout
 	badge.queue_free()
-	# próxima região (o idle segue para lá)
-	progress = 0.0
-	Game.idle_prog[was] = 0.0
+	# próximo mapa (o idle segue para lá). O mapa purificado continua
+	# disponível para farmar (setas de zona).
+	Game.zone_kills[was] = 0
 	if was < Game.REGIONS.size() - 1:
 		Game.region = was + 1
+		Game.zone[was + 1] = 1
+		Game.zone_kills[was + 1] = 0
+		Game.zone_max[was + 1] = maxi(1, int(Game.zone_max.get(was + 1, 1)))
 		Game.change_scene("res://scenes/idle.tscn")
 	else:
 		sanct_ready = false
-		progress = 0.0
 		gym.queue_free()
 		leader_spr.queue_free()
 		sanct_btn.queue_free()

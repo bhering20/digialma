@@ -346,6 +346,12 @@ func _build_options() -> void:
 	dc.button_pressed = Game.options["dicas"]
 	dc.toggled.connect(func(on): Game.options["dicas"] = on)
 	v.add_child(dc)
+	var asom := CheckButton.new()
+	asom.text = "ALERTA SONORO (RARO E SANTUÁRIO)"
+	asom.tooltip_text = "O idle é silencioso; só toca um sininho quando um raro aparece ou o Santuário chega."
+	asom.button_pressed = Game.options.get("alerta_som", true)
+	asom.toggled.connect(func(on): Game.options["alerta_som"] = on)
+	v.add_child(asom)
 	var dfx := CheckButton.new()
 	dfx.text = "DUELO NA FAIXA DO IDLE"
 	dfx.tooltip_text = "Raros Épicos/Lendários lutam ali mesmo na faixa. Desligado: abre a batalha completa no painel."
