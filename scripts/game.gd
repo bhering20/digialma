@@ -211,7 +211,8 @@ const STRONG := {"Fogo": ["Planta", "Gelo", "Inseto"], "Água": ["Fogo"], "Plant
 ## pressionam o inicial: o Fogo sobra na Floresta, sofre na Costa (Água) e
 ## precisa de parceiros de outros tipos para seguir.
 const ZONES := 10
-const ZONE_LV := [3, 15, 27]  # nível mínimo na zona 1 de cada mapa (+1 por zona)
+const ZONE_LV := [4, 21, 37]  # nível mínimo na zona 1 de cada mapa
+const ZONE_STEP := 2.0          # níveis a mais por zona
 const ZONE_POOLS := [
 	# Floresta: Planta/Inseto/Voador (bom para Fogo); no fim, a Água começa a aparecer
 	[[15, 1, 5, 4], [15, 16, 1, 2, 5], [16, 2, 3, 5, 12]],
@@ -230,6 +231,7 @@ var zone := {}       # mapa -> zona atual
 var zone_max := {}   # mapa -> maior zona liberada
 var zone_kills := {} # mapa -> purificações na zona atual
 var zone_auto := true
+var all_purified := false
 
 
 func zone_of(r: int) -> int:
@@ -241,7 +243,7 @@ func zone_need(z: int) -> int:
 
 
 func zone_levels(r: int, z: int) -> Vector2i:
-	var lo: int = ZONE_LV[r] + z - 1
+	var lo: int = ZONE_LV[r] + int((z - 1) * ZONE_STEP)
 	return Vector2i(lo, lo + 2)
 
 
@@ -345,7 +347,7 @@ var tutorial := {"idle": false, "batalha": false, "especial": false, "escanear":
 var battle_count := 0
 var seen := {}
 var intro_done := false
-var options := {"alerta_som": true, "fullscreen": false, "musica": 80, "efeitos": 90, "janela_ampla": false, "dicas": true, "painel": 1.25, "jogo_compacto": true, "duelo_faixa": true}
+var options := {"sons_idle": true, "alerta_som": true, "fullscreen": false, "musica": 80, "efeitos": 90, "janela_ampla": false, "dicas": true, "painel": 1.25, "jogo_compacto": true, "duelo_faixa": true}
 const PANEL_SIZES := [1.0, 1.25, 1.5, 2.0]
 
 
@@ -387,12 +389,42 @@ void fragment() {
 
 
 # ---------------------------------------------------------------- SAVE
-const VERSION := "0.2"
+const VERSION := "0.3"
 const SAVE_PATH := "user://digialma_save.dat"
-const SAVE_KEYS := ["zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp"]
+const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp"]
 var last_seen := 0  # quando o jogo foi salvo pela última vez (para o progresso offline)
 var _save_t := 0.0
 var _testing := false
+
+
+# ---------------------------------------------------------------- SONS
+## Efeitos curtos e suaves (sintetizados, originais). Volume baixo e com
+## intervalo mínimo por som, para o idle não ficar irritante.
+var _sfx_pool: Array = []
+var _sfx_last := {}
+
+
+func sfx(name: String, db := 0.0, cooldown := 0.25) -> void:
+	if not options.get("sons_idle", true) or _testing:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - float(_sfx_last.get(name, -99.0)) < cooldown:
+		return
+	_sfx_last[name] = now
+	var p: AudioStreamPlayer = null
+	for q in _sfx_pool:
+		if not q.playing:
+			p = q
+			break
+	if p == null:
+		if _sfx_pool.size() >= 6:
+			return
+		p = AudioStreamPlayer.new()
+		add_child(p)
+		_sfx_pool.append(p)
+	p.stream = load("res://assets/sfx/%s.wav" % name)
+	p.volume_db = linear_to_db(maxf(0.01, options.get("efeitos", 90) / 100.0)) - 10.0 + db
+	p.play()
 
 
 func save_game() -> void:
@@ -518,6 +550,8 @@ func _ready() -> void:
 			_debug_v25()
 		elif a == "--shot=v26":
 			_debug_v26()
+		elif a == "--shot=v27":
+			_debug_v27()
 		elif a == "--shot=v20":
 			_debug_v20()
 		elif a == "--shot=v19":
@@ -998,7 +1032,7 @@ func fuse_gear() -> int:
 
 ## Curva quadrática: o nível do santuário exige tempo de verdade.
 func xp_need(m: Dictionary) -> int:
-	return 20 + int(m["lv"]) * int(m["lv"]) * 3
+	return 20 + int(m["lv"]) * int(m["lv"]) * 4
 
 
 func moves_of(m: Dictionary) -> Array:
@@ -1167,6 +1201,10 @@ uniform float nefasto = 0.0;
 uniform float scan = 0.0;
 uniform float silhouette = 0.0;
 uniform float t = 0.0;
+// cor do vértice (com o modulate); o COLOR do fragmento já vem multiplicado
+// pela textura, então multiplicar de novo escurecia tudo
+varying vec4 vcol;
+void vertex() { vcol = COLOR; }
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void fragment() {
 	vec2 uv = UV;
@@ -1187,7 +1225,7 @@ void fragment() {
 	}
 	c.rgb = mix(c.rgb, vec3(1.0), silhouette);
 	c.rgb = mix(c.rgb, flash_color.rgb, flash);
-	COLOR = c * COLOR;
+	COLOR = c * vcol;
 }
 """
 
@@ -1898,11 +1936,20 @@ func _debug_v23() -> void:
 	get_tree().create_timer(120.0, true, false, true).timeout.connect(get_tree().quit)
 	await get_tree().create_timer(0.5).timeout
 	new_game(7)
+	var rr := int(OS.get_environment("REG")) if OS.get_environment("REG") != "" else 0
 	team[0]["id"] = 9
-	team[0]["lv"] = 30
+	team[0]["lv"] = 75
 	team[0]["tree"] = {"a1": true}
+	team[0]["hp"] = max_hp(team[0])
 	debug_species = -9
-	idle_prog[0] = 100.0
+	tutorial["idle"] = true
+	for k in 3:
+		tutorial["mapa%d" % k] = true
+	badges = rr
+	region = rr
+	zone[rr] = ZONES
+	zone_max[rr] = ZONES
+	zone_kills[rr] = zone_need(ZONES)
 	get_tree().change_scene_to_file("res://scenes/idle.tscn")
 	await get_tree().create_timer(8.0).timeout
 	var idle = get_tree().current_scene
@@ -1911,13 +1958,13 @@ func _debug_v23() -> void:
 	for i in 200:
 		await get_tree().create_timer(0.4).timeout
 		get_viewport().get_texture().get_image().save_png("/tmp/v23/s%03d.png" % i)
-		if badges >= 1 and i > 10:
+		if badges >= rr + 1 and i > 10:
 			await get_tree().create_timer(2.0).timeout
 			get_viewport().get_texture().get_image().save_png("/tmp/v23/z_fim.png")
 			break
 	await get_tree().create_timer(3.0).timeout
 	get_viewport().get_texture().get_image().save_png("/tmp/v23/z_regiao2.png")
-	print("FIM badges=", badges, " region=", region)
+	print("FIM badges=", badges, " region=", region, " todos=", all_purified)
 	get_tree().quit()
 
 
@@ -1996,3 +2043,25 @@ func _debug_v26() -> void:
 		if i % 5 == 0:
 			print("t=", i, " zona=", zone.get(region, 1), " kills=", zone_kills.get(region, 0), " hp=", team[0]["hp"], "/", max_hp(team[0]), " lv=", team[0]["lv"])
 	get_tree().quit()
+
+
+## Simulação de balanceamento: jogador novo, tempo acelerado.
+func _debug_v27() -> void:
+	get_tree().create_timer(175.0, true, false, true).timeout.connect(get_tree().quit)
+	await get_tree().create_timer(0.3).timeout
+	new_game(7)
+	tutorial["idle"] = true
+	tutorial["mapa0"] = true
+	get_tree().change_scene_to_file("res://scenes/idle.tscn")
+	await get_tree().create_timer(1.0).timeout
+	Engine.time_scale = 30.0
+	var gt := 0.0
+	for i in 2000:
+		await get_tree().create_timer(6.0).timeout  # 6s de jogo
+		gt += 6.0
+		var mins := gt / 60.0
+		if i % 30 == 0:
+			var lvs: Array = []
+			for m in team:
+				lvs.append(m["lv"])
+			print("SIM %5.1f min | zona %d-%d kills %d/%d | max %d | niveis %s | badges %d" % [mins, region + 1, zone_of(region), int(zone_kills.get(region, 0)), zone_need(zone_of(region)), int(zone_max.get(region, 1)), str(lvs), badges])

@@ -48,6 +48,7 @@ var want_sanct := false
 var pending_evo: Array = []
 var approaching := false
 var hold_evo := false
+var amb2: MapAmbient
 var sfx: AudioStreamPlayer
 var zone_l: Label
 var hp_bars: Array = []
@@ -60,7 +61,7 @@ var dueling := false
 var duel_btn: Button
 ## Quanto o caminho do idle anda por purificação (bem mais longo que jogando).
 ## Dano que o grupo leva no idle (o idle é mais leve que o duelo)
-const IDLE_TAKEN := 0.4
+const IDLE_TAKEN := 0.55
 const FAINT := Color(0.35, 0.35, 0.45, 0.55)
 const STEP_MIN := 0.8
 const STEP_MAX := 1.3
@@ -85,6 +86,11 @@ func _ready() -> void:
 	road.ground = GROUND
 	road.material = cmat
 	add_child(road)
+	amb2 = MapAmbient.new()
+	amb2.kind = ["floresta", "costa", "vulcao"][mini(Game.region, 2)]
+	amb2.corrupted = cmat != null
+	amb2.ground = GROUND
+	add_child(amb2)
 	stage = Node2D.new()
 	stage.y_sort_enabled = true
 	add_child(stage)
@@ -101,9 +107,12 @@ func _ready() -> void:
 	_build_hud()
 	_offline_gains()
 	_heal_party(1.0, true)
-	if progress >= 100.0 and Game.zone_of(my_region) >= Game.ZONES:
+	if progress >= 100.0 and Game.zone_of(my_region) >= Game.ZONES and Game.badges <= my_region:
 		_sanctuary_ready.call_deferred()
 	_log("%s começou a explorar %s." % [Game.mon_name(Game.team[0]), reg["nome"]])
+	if not Game.tutorial.get("mapa%d" % my_region, false):
+		Game.tutorial["mapa%d" % my_region] = true
+		_map_intro.call_deferred()
 	if not Game.tutorial.get("idle", false):
 		Game.tutorial["idle"] = true
 		hold_evo = true
@@ -294,6 +303,8 @@ func _strip_duel(e: Dictionary) -> void:
 			Game.add_partner(e)
 			captured += 1
 			_pop_icon(kid.position + Vector2(0, -44), "coracao")
+			Game.sfx("captura")
+		Game.sfx("captura")
 	print("[duelo] resultado=", r)
 	dueling = false
 	_refresh()
@@ -427,10 +438,15 @@ func _build_hud() -> void:
 	log_l.visible = false
 	add_child(log_l)
 	var bx := HBoxContainer.new()
-	bx.position = Vector2(W - FADE * 0.5 - 89, 2)
+	bx.position = Vector2(W - FADE * 0.5 - 112, 2)
 	bx.add_theme_constant_override("separation", 3)
 	add_child(bx)
 	hud.append(bx)
+	var snd := _icon_btn("som" if Game.options.get("sons_idle", true) else "mudo", "Sons do idle (os alertas de raro e santuário têm opção própria)")
+	snd.pressed.connect(func():
+		Game.options["sons_idle"] = not Game.options.get("sons_idle", true)
+		snd.icon = Game.tex(UI % ("som" if Game.options["sons_idle"] else "mudo")))
+	bx.add_child(snd)
 	var help := _pill("?", 20)
 	help.custom_minimum_size = Vector2(20, 18)
 	help.tooltip_text = "Como jogar"
@@ -642,8 +658,11 @@ func _process(delta: float) -> void:
 			elif pets[i].modulate == FAINT:
 				pets[i].modulate = Color.WHITE
 	if not walking:
+		if amb2:
+			amb2.drift = 0.0
 		return
 	road.scroll += SPEED * delta
+	amb2.drift = SPEED * 0.6
 	road.queue_redraw()
 	for p in props.duplicate():
 		var s := p as Sprite2D
@@ -664,9 +683,11 @@ func _loop() -> void:
 	while is_inside_tree():
 		_set_walking(not sanct_ready or approaching)
 		var faro: float = [1.0, 0.75, 0.55][Game.elo_level("faro")]
-		var until := Time.get_ticks_msec() + int(rng.randf_range(2.5, 5.0) * faro * 1000.0)
-		while Time.get_ticks_msec() < until and not want_duel and not want_sanct and (pending_evo.is_empty() or hold_evo or is_instance_valid(panel_win)) and is_inside_tree():
+		var wait_s := rng.randf_range(2.5, 5.0) * faro
+		var waited := 0.0
+		while waited < wait_s and not want_duel and not want_sanct and (pending_evo.is_empty() or hold_evo or is_instance_valid(panel_win)) and is_inside_tree():
 			await get_tree().process_frame
+			waited += get_process_delta_time()
 		if not is_inside_tree():
 			return
 		if not pending_evo.is_empty() and not hold_evo and not is_instance_valid(panel_win):
@@ -738,6 +759,7 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 		return
 	var mpos := m.position
 	_elo_xp(2 + rar)
+	Game.sfx("purificar%d" % rng.randi_range(0, 2), -4.0, 1.2)
 	await _purify_fx(m, mat)
 	var xp: int = 6 + e["lv"] * 2
 	var b := int(rng.randi_range(8, 20) * [1.0, 1.5, 2.0][Game.elo_level("bolsa")] * (1.2 if Game.has_skill(Game.team[0], "v3") else 1.0) * (1.0 + Game.gear_bonus(Game.team[0], "bits")))
@@ -746,7 +768,7 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 	bits_gained += b
 	Game.bits += b
 	Game.zone_kills[my_region] = int(Game.zone_kills.get(my_region, 0)) + 1
-	_heal_party(0.2)
+	_heal_party(0.12)
 	_give_xp(xp)
 	_log("%s foi purificado! +%d XP  +%d bits" % [Game.mon_name(e), xp, b], Color("aef7c8"))
 	# chance de amuleto (raridade do Nefasto ajuda)
@@ -755,11 +777,13 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 		items_found += 1
 		await get_tree().create_timer(1.0).timeout
 		_drop_fx(mpos + Vector2(0, -20), g)
+		Game.sfx("item")
 		_log("Achou um amuleto: %s! (%s)" % [Game.gear_name(g), Game.gear_desc(g)], Game.rar_color(g["rar"]))
 	# Cristal de Ressonância (para fusões)
 	if rng.randf() < 0.05 + rar * 0.03:
 		Game.cristais += 1
 		_pop_icon(mpos + Vector2(0, -30), "res")
+		Game.sfx("cristal")
 	var auto_ch: float = [0.0, 0.15, 0.3][Game.elo_level("auto")]
 	if rng.randf() < auto_ch:
 		e["hp"] = Game.max_hp(e)
@@ -768,6 +792,7 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 		await get_tree().create_timer(1.2).timeout
 		_log("Purificação Automática: %s quis ficar com você! (%s)" % [Game.mon_name(e), where], Color("ffd84a"))
 		_pop_icon(kid.position + Vector2(0, -44), "coracao")
+		Game.sfx("captura")
 	_refresh()
 	await _check_zone()
 
@@ -785,7 +810,17 @@ func _check_zone() -> void:
 	if int(Game.zone_kills.get(my_region, 0)) < Game.zone_need(z):
 		return
 	if z >= Game.ZONES:
-		if not sanct_ready:
+		if Game.badges > my_region:
+			# mapa já purificado: a zona 10 vira farm (com um baú de bits)
+			Game.zone_kills[my_region] = 0
+			var bonus := 40 * (my_region + 1)
+			Game.bits += bonus
+			bits_gained += bonus
+			_pop_icon(kid.position + Vector2(0, -44), "bits")
+			_pop_text(kid.position + Vector2(8, -50), str(bonus), Color("ffd84a"))
+			Game.sfx("item")
+			_refresh()
+		elif not sanct_ready:
 			await _sanctuary_ready()
 		return
 	Game.zone_max[my_region] = maxi(int(Game.zone_max.get(my_region, 1)), z + 1)
@@ -795,6 +830,7 @@ func _check_zone() -> void:
 		_heal_party(1.0, true)
 		_sparkle(kid.position + Vector2(0, -30))
 		_pop_text(kid.position + Vector2(-6, -50), "%d-%d" % [my_region + 1, z + 1], Color("ffd84a"))
+		Game.sfx("zona")
 	else:
 		Game.zone_kills[my_region] = 0  # farmando: repete a zona
 	_refresh()
@@ -926,6 +962,7 @@ func _fight(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> bool:
 
 ## O grupo inteiro caiu: o Nefasto vence, todos voltam uma zona e se recuperam.
 func _defeat(m: AnimatedSprite2D) -> void:
+	Game.sfx("derrota")
 	_pop_icon(kid.position + Vector2(0, -44), "fugir")
 	_burst(kid.position + Vector2(0, -20), Color("b050ff"), 16)
 	await create_tween().tween_property(m, "position:x", W + 60, 0.6).finished
@@ -944,8 +981,55 @@ func _alert(name: String) -> void:
 	if not Game.options.get("alerta_som", true):
 		return
 	sfx.stream = load("res://assets/sfx/%s.wav" % name)
-	sfx.volume_db = linear_to_db(maxf(0.01, Game.options.get("efeitos", 90) / 100.0)) - 6.0
+	sfx.volume_db = linear_to_db(maxf(0.01, Game.options.get("efeitos", 90) / 100.0)) - 8.0
 	sfx.play()
+
+
+## Abertura de mapa novo: a insígnia do mapa (apagada enquanto corrompido)
+## surge sobre o grupo, com o número da zona.
+func _map_intro() -> void:
+	await get_tree().create_timer(1.2).timeout
+	var b := Sprite2D.new()
+	b.texture = Game.tex("res://assets/badges/%s.png" % reg["lider"]["badge"])
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	b.position = Vector2(W * 0.5, 40)
+	b.scale = Vector2(0.05, 0.05)
+	b.modulate = Color(0.55, 0.4, 0.75, 0.0) if cmat else Color(1, 1, 1, 0.0)
+	add_child(b)
+	var tw := create_tween()
+	tw.tween_property(b, "scale", Vector2(0.45, 0.45), 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(b, "modulate:a", 1.0, 0.4)
+	await tw.finished
+	_pop_text(Vector2(W * 0.5 - 8, 30), "%d-%d" % [my_region + 1, Game.zone_of(my_region)], Color("ffd84a"))
+	Game.sfx("zona")
+	await get_tree().create_timer(1.6).timeout
+	await create_tween().tween_property(b, "modulate:a", 0.0, 0.5).finished
+	b.queue_free()
+
+
+## Os 3 mapas purificados: as três insígnias giram sobre o grupo.
+## O idle continua (farm infinito) até o meio do jogo chegar num update.
+func _finale() -> void:
+	Game.sfx("vitoria")
+	var bs: Array = []
+	for i in Game.REGIONS.size():
+		var b := Sprite2D.new()
+		b.texture = Game.tex("res://assets/badges/%s.png" % Game.REGIONS[i]["lider"]["badge"])
+		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		b.scale = Vector2(0.35, 0.35)
+		add_child(b)
+		bs.append(b)
+	var t0 := 0.0
+	while t0 < 4.0 and is_inside_tree():
+		t0 += get_process_delta_time()
+		for i in bs.size():
+			var a := t0 * 2.0 + i * TAU / bs.size()
+			bs[i].position = kid.position + Vector2(cos(a) * 34.0, -40.0 + sin(a) * 10.0)
+		if int(t0 * 10) % 7 == 0:
+			_burst(kid.position + Vector2(randf_range(-60, 60), -30), Color("ffd84a"), 4)
+		await get_tree().process_frame
+	for b in bs:
+		b.queue_free()
 
 
 ## Épico/Lendário: o Digialma desafia e fica esperando numa fila (até 3).
@@ -1026,9 +1110,10 @@ func _rare_call(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> void
 	add_child(hit)
 	rare_answer = ""
 	hit.pressed.connect(func(): rare_answer = "clicou")
-	var deadline := Time.get_ticks_msec() + 9000
-	while rare_answer == "" and Time.get_ticks_msec() < deadline and is_inside_tree():
+	var waited := 0.0
+	while rare_answer == "" and waited < 9.0 and is_inside_tree():
 		await get_tree().process_frame
+		waited += get_process_delta_time()
 	pulse.kill()
 	flash.queue_free()
 	hit.queue_free()
@@ -1039,6 +1124,7 @@ func _rare_call(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> void
 		e["hp"] = Game.max_hp(e)
 		_log("Captura automática: o Elo purificou %s sozinho! (%s)" % [Game.mon_name(e), Game.add_partner(e)], Color("ffd84a"))
 		_pop_icon(kid.position + Vector2(0, -44), "coracao")
+		Game.sfx("captura")
 		_refresh()
 		return
 	if rare_answer == "":
@@ -1075,6 +1161,7 @@ func _rare_call(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> void
 		_elo_xp(15)
 		_log("PERFEITO! %s foi purificado e quis ficar com você! (%s)" % [Game.mon_name(e), where], Color("ffd84a"))
 		_pop_icon(kid.position + Vector2(0, -44), "coracao")
+		Game.sfx("captura")
 		_sparkle(m.position + Vector2(0, -26))
 		_refresh()
 	else:
@@ -1141,7 +1228,7 @@ func _rec_lv() -> int:
 	var top := 0
 	for pr in reg["lider"]["time"]:
 		top = maxi(top, pr[1])
-	return Game.ZONE_LV[my_region] + Game.ZONES
+	return Game.zone_levels(my_region, Game.ZONES).y + 1
 
 
 func _sanctuary_challenge() -> void:
@@ -1162,7 +1249,7 @@ func _sanctuary_challenge() -> void:
 	var boss_off := [1, 2, 4]
 	for bi in ld["time"].size():
 		var pair: Array = ld["time"][bi]
-		var blv: int = Game.ZONE_LV[my_region] + Game.ZONES - 1 + boss_off[mini(bi, 2)]
+		var blv: int = Game.zone_levels(my_region, Game.ZONES).y - 1 + boss_off[mini(bi, 2)]
 		var e := Game.new_monster(pair[0], blv, pair[2] if pair.size() > 2 else 0)
 		e["nefasto"] = Game.region_corrupt(Game.region)
 		var d = load("res://scripts/strip_duel.gd").new()
@@ -1208,6 +1295,7 @@ func _sanctuary_challenge() -> void:
 
 
 func _sanctuary_win() -> void:
+	Game.sfx("vitoria")
 	var ld: Dictionary = reg["lider"]
 	var was := Game.region
 	Game.badges = maxi(Game.badges, was + 1)
@@ -1236,6 +1324,7 @@ func _sanctuary_win() -> void:
 			_burst(Vector2(FADE + i * (W - FADE * 2) / 4.0, GROUND - 10), Color("fff3a8"), 10)
 		road.material = null
 		gym.material = null
+		amb2.corrupted = false
 		for p in props:
 			(p as CanvasItem).material = null
 		cmat = null
@@ -1252,6 +1341,8 @@ func _sanctuary_win() -> void:
 		Game.zone_max[was + 1] = maxi(1, int(Game.zone_max.get(was + 1, 1)))
 		Game.change_scene("res://scenes/idle.tscn")
 	else:
+		Game.all_purified = true
+		await _finale()
 		sanct_ready = false
 		gym.queue_free()
 		leader_spr.queue_free()
@@ -1267,6 +1358,7 @@ func _check_evo(m: Dictionary) -> void:
 
 func _do_evolutions() -> void:
 	_set_walking(false)
+	Game.sfx("evolucao")
 	while not pending_evo.is_empty():
 		var m: Dictionary = pending_evo.pop_front()
 		var i := Game.team.find(m)
@@ -1310,6 +1402,7 @@ func _give_xp(xp: int) -> void:
 			_log("%s subiu para o Nv %d! +1 Ponto de Alma" % [Game.mon_name(m), m["lv"]], Color("8fd4ff"))
 		if m["lv"] > lv0 and i < pets.size():
 			_pop_icon(pets[i].position + Vector2(0, -36), "nivel")
+			Game.sfx("nivel", 0.0, 1.0)
 		_check_evo(m)
 
 
@@ -1461,3 +1554,70 @@ class GroundStrip extends Node2D:
 				var yb: float = bot.call(x)
 				var len := 2 + h % 4
 				draw_rect(Rect2(x, yb - 1, 1, len), Color(pal["raiz"], f * 0.9))
+
+
+## Partículas leves do mapa (não distraem): vagalumes e folhas na Floresta,
+## brilhos e bolhas na Costa, brasas e cinzas no Monte Brasa. Corrompido:
+## esporos roxos subindo devagar.
+class MapAmbient extends Node2D:
+	var kind := "floresta"
+	var corrupted := false
+	var ground := 80.0
+	var drift := 0.0
+	var ps: Array = []
+	var t := 0.0
+
+	func _ready() -> void:
+		for i in 16:
+			ps.append(_new(randf_range(0, 640)))
+
+	func _new(x: float) -> Dictionary:
+		return {"x": x, "y": randf_range(16, ground - 6), "ph": randf() * TAU, "sp": randf_range(0.5, 1.2), "k": randi() % 2}
+
+	func _process(d: float) -> void:
+		t += d
+		for p in ps:
+			p["x"] -= drift * d * p["sp"]
+			if corrupted:
+				p["y"] -= 4.0 * d * p["sp"]
+			else:
+				match kind:
+					"floresta":
+						p["x"] += sin(t * 0.8 + p["ph"]) * 6.0 * d
+						p["y"] += (cos(t * 0.7 + p["ph"]) * 4.0 + (8.0 if p["k"] == 1 else 0.0)) * d
+					"costa":
+						p["y"] -= (6.0 if p["k"] == 1 else 0.0) * d
+					"vulcao":
+						p["y"] -= (10.0 if p["k"] == 0 else -5.0) * d * p["sp"]
+						p["x"] += sin(t + p["ph"]) * 5.0 * d
+			if p["x"] < -10 or p["y"] < 10 or p["y"] > ground + 2:
+				var n := _new(650.0 if drift > 0.0 else randf_range(0, 640))
+				p.merge(n, true)
+		queue_redraw()
+
+	func _draw() -> void:
+		for p in ps:
+			var x: float = p["x"]
+			var fa := clampf(minf(x, 640.0 - x) / 70.0, 0.0, 1.0)
+			var tw := 0.5 + 0.5 * sin(t * 3.0 + p["ph"])
+			var pos := Vector2(round(x), round(p["y"]))
+			if corrupted:
+				draw_rect(Rect2(pos, Vector2(1, 1)), Color(0.75, 0.4, 1.0, 0.55 * fa * (0.5 + tw * 0.5)))
+				continue
+			match kind:
+				"floresta":
+					if p["k"] == 0:
+						draw_circle(pos, 1.6, Color(0.85, 1.0, 0.4, 0.18 * fa * tw))
+						draw_rect(Rect2(pos, Vector2(1, 1)), Color(0.95, 1.0, 0.6, 0.85 * fa * tw))
+					else:
+						draw_rect(Rect2(pos, Vector2(2, 1)), Color(0.45, 0.75, 0.3, 0.6 * fa))
+				"costa":
+					if p["k"] == 0:
+						draw_rect(Rect2(pos, Vector2(1, 1)), Color(1, 1, 1, 0.8 * fa * tw * tw))
+					else:
+						draw_arc(pos, 1.5, 0, TAU, 8, Color(0.7, 0.9, 1.0, 0.45 * fa), 1.0)
+				"vulcao":
+					if p["k"] == 0:
+						draw_rect(Rect2(pos, Vector2(1, 1)), Color(1.0, 0.55 + 0.3 * tw, 0.2, 0.85 * fa))
+					else:
+						draw_rect(Rect2(pos, Vector2(1, 1)), Color(0.5, 0.45, 0.45, 0.5 * fa))

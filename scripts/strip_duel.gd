@@ -357,6 +357,10 @@ func _ring(at: Vector2, dur: float, col: Color, tol_mult := 1.0, feint := false)
 			break
 		await get_tree().process_frame
 	ring.result(res)
+	if res == "perfect":
+		Game.sfx("perfeito", 0.0, 0.05)
+	elif res == "miss":
+		Game.sfx("erro", -2.0, 0.05)
 	catcher.visible = false
 	return res
 
@@ -460,6 +464,7 @@ func _enemy_attack() -> void:
 			_sync(12.0)
 		"ok":
 			host._pop_icon(pet.position + Vector2(0, -34), "desvio")
+			Game.sfx("desvio", 0.0, 0.05)
 			create_tween().tween_property(pet, "position:x", pet.position.x - 10, 0.08).set_trans(Tween.TRANS_QUAD)
 			await get_tree().create_timer(0.12).timeout
 			create_tween().tween_property(pet, "position:x", 262.0, 0.15)
@@ -505,6 +510,7 @@ func _laco() -> bool:
 			ok = false
 			break
 		seal.lock()
+		Game.sfx("selo", float(seal.locked) * 1.5, 0.02)
 		host._burst(center, Color("7affc1"), 5)
 		mat.set_shader_parameter("flash", 0.5)
 		get_tree().create_timer(0.08).timeout.connect(func(): if is_instance_valid(m): mat.set_shader_parameter("flash", 0.0))
@@ -554,6 +560,7 @@ func _lunge(who: Node2D, target: Node2D, col: Color) -> void:
 
 
 func _hit(spr: AnimatedSprite2D, smat: ShaderMaterial, dmg: int, col: Color, big: bool, on_player := false) -> void:
+	Game.sfx("golpe", 0.0 if big else -3.0, 0.05)
 	if on_player:
 		lead["hp"] = maxi(0, lead["hp"] - dmg)
 	else:

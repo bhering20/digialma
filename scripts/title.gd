@@ -346,6 +346,12 @@ func _build_options() -> void:
 	dc.button_pressed = Game.options["dicas"]
 	dc.toggled.connect(func(on): Game.options["dicas"] = on)
 	v.add_child(dc)
+	var sid := CheckButton.new()
+	sid.text = "SONS DO IDLE (SUAVES)"
+	sid.tooltip_text = "Plings baixinhos ao purificar, subir de nível, achar itens... Também dá para ligar/desligar na própria faixa."
+	sid.button_pressed = Game.options.get("sons_idle", true)
+	sid.toggled.connect(func(on): Game.options["sons_idle"] = on)
+	v.add_child(sid)
 	var asom := CheckButton.new()
 	asom.text = "ALERTA SONORO (RARO E SANTUÁRIO)"
 	asom.tooltip_text = "O idle é silencioso; só toca um sininho quando um raro aparece ou o Santuário chega."
