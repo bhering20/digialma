@@ -1,0 +1,14 @@
+# Godot: cache de importação (é recriado ao abrir o projeto)
+.godot/
+*.translation
+
+# Builds exportados
+build/
+*.exe
+*.pck
+*.zip
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
