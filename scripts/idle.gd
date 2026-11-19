@@ -61,6 +61,7 @@ var duel_btn: Button
 ## Quanto o caminho do idle anda por purificação (bem mais longo que jogando).
 ## Dano que o grupo leva no idle (o idle é mais leve que o duelo)
 const IDLE_TAKEN := 0.4
+const FAINT := Color(0.35, 0.35, 0.45, 0.55)
 const STEP_MIN := 0.8
 const STEP_MAX := 1.3
 var drag_off := Vector2i.ZERO
@@ -634,6 +635,12 @@ func _process(delta: float) -> void:
 			hb.position = pets[i].position + Vector2(-10, -40 if Game.FOOT[Game.team[i]["id"]] > 85 else -36)
 			hb.target = clampf(float(Game.team[i]["hp"]) / Game.max_hp(Game.team[i]), 0.0, 1.0)
 			hb.visible = not dueling and (hb.target < 0.999 or hud_a > 0.05)
+			# aparência segue a vida: desmaiado = escurecido; vivo = normal
+			var fainted: bool = int(Game.team[i]["hp"]) <= 0
+			if fainted:
+				pets[i].modulate = FAINT
+			elif pets[i].modulate == FAINT:
+				pets[i].modulate = Color.WHITE
 	if not walking:
 		return
 	road.scroll += SPEED * delta
@@ -909,7 +916,7 @@ func _fight(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> bool:
 			lm["hp"] = maxi(0, int(lm["hp"]) - d2)
 			_pop_text(pet.position + Vector2(0, -34), str(d2), Color("ff9a9a"))
 			pet.modulate = Color(1.6, 0.6, 0.6)
-			get_tree().create_timer(0.12).timeout.connect(func(): if is_instance_valid(pet): pet.modulate = Color.WHITE if int(lm["hp"]) > 0 else Color(0.35, 0.35, 0.45, 0.55))
+			get_tree().create_timer(0.12).timeout.connect(func(): if is_instance_valid(pet): pet.modulate = Color.WHITE if int(lm["hp"]) > 0 else FAINT)
 			if lm["hp"] <= 0:
 				_burst(pet.position + Vector2(0, -20), Color(0.6, 0.6, 0.7), 10)
 		create_tween().tween_property(m, "position", back, 0.22)

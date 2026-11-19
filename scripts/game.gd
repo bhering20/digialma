@@ -1067,7 +1067,8 @@ func elo_level(k: String) -> int:
 func level_up(m: Dictionary) -> void:
 	var old_max := max_hp(m)
 	m["lv"] += 1
-	m["hp"] = mini(m["hp"] + max_hp(m) - old_max, max_hp(m))
+	if int(m["hp"]) > 0:  # subir de nível não levanta quem está desmaiado
+		m["hp"] = mini(m["hp"] + max_hp(m) - old_max, max_hp(m))
 	if m.has("tree"):
 		m["pa"] = m.get("pa", 0) + 1
 
