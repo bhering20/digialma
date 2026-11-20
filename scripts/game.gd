@@ -113,6 +113,8 @@ var elo_up := {}
 
 ## Sprites próprios (fora do pacote): ramos de evolução recoloridos.
 const CUSTOM_SPRITES := {17: "res://assets/monsters/sprite17_%s.png", 18: "res://assets/monsters/sprite18_%s.png"}
+## Animações novas (geradas com IA e tratadas em pixel art): substituem/acrescentam às do pacote.
+const EXTRA_ANIMS := {9: {"walk": "res://assets/monsters/sprite9_walk.png", "attack": "res://assets/monsters/sprite9_attack2.png"}}
 
 
 func foot_offset(id: int) -> Vector2:
@@ -552,6 +554,8 @@ func _ready() -> void:
 			_debug_v26()
 		elif a == "--shot=v27":
 			_debug_v27()
+		elif a == "--shot=v28":
+			_debug_v28()
 		elif a == "--shot=v20":
 			_debug_v20()
 		elif a == "--shot=v19":
@@ -637,11 +641,18 @@ func monster_frames(id: int) -> SpriteFrames:
 		return _frames[key]
 	var sf := SpriteFrames.new()
 	sf.remove_animation("default")
-	for anim in ["idle", "attack"]:
-		var t: Texture2D = tex((CUSTOM_SPRITES[id] % anim) if CUSTOM_SPRITES.has(id) else MP + "sprites/sprite%d_%s.png" % [id, anim])
+	var extra: Dictionary = EXTRA_ANIMS.get(id, {})
+	for anim in ["idle", "attack", "walk"]:
+		var path: String
+		if extra.has(anim):
+			path = extra[anim]
+		else:
+			var base_anim: String = "idle" if anim == "walk" else anim
+			path = (CUSTOM_SPRITES[id] % base_anim) if CUSTOM_SPRITES.has(id) else MP + "sprites/sprite%d_%s.png" % [id, base_anim]
+		var t: Texture2D = tex(path)
 		sf.add_animation(anim)
-		sf.set_animation_speed(anim, 6.0 if anim == "idle" else 10.0)
-		sf.set_animation_loop(anim, anim == "idle")
+		sf.set_animation_speed(anim, {"idle": 6.0, "attack": 10.0, "walk": 9.0}[anim])
+		sf.set_animation_loop(anim, anim != "attack")
 		var n := int(t.get_width() / 96)
 		for f in n:
 			var at := AtlasTexture.new()
@@ -2065,3 +2076,17 @@ func _debug_v27() -> void:
 			for m in team:
 				lvs.append(m["lv"])
 			print("SIM %5.1f min | zona %d-%d kills %d/%d | max %d | niveis %s | badges %d" % [mins, region + 1, zone_of(region), int(zone_kills.get(region, 0)), zone_need(zone_of(region)), int(zone_max.get(region, 1)), str(lvs), badges])
+
+
+func _debug_v28() -> void:
+	DirAccess.make_dir_recursive_absolute("/tmp/v28")
+	get_tree().create_timer(40.0, true, false, true).timeout.connect(get_tree().quit)
+	await get_tree().create_timer(0.5).timeout
+	new_game(7)
+	tutorial["idle"] = true
+	team[0] = new_monster(9, 30)
+	team[0]["hp"] = max_hp(team[0])
+	get_tree().change_scene_to_file("res://scenes/idle.tscn")
+	for i in 60:
+		await get_tree().create_timer(0.25).timeout
+		get_viewport().get_texture().get_image().save_png("/tmp/v28/%02d.png" % i)

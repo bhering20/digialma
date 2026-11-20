@@ -594,7 +594,7 @@ func _spawn_party() -> void:
 		var pet = R.Pet.new()
 		var m: Dictionary = Game.team[i]
 		pet.sprite_frames = Game.monster_frames(m["id"])
-		pet.play("idle")
+		pet.play("walk" if walking else "idle")
 		pet.centered = false
 		pet.foot = Game.foot_offset(m["id"])
 		pet.offset = pet.foot
@@ -626,6 +626,8 @@ func _set_walking(on: bool) -> void:
 	kid.play("right" if on else "idle_right")
 	for p in pets:
 		p.walking = on
+		if p.animation != "attack":
+			p.play("walk" if on else "idle")
 
 
 func _process(delta: float) -> void:
@@ -918,7 +920,7 @@ func _fight(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> bool:
 		var dmg := int(Game.calc_damage(lm, e, mv, crit) * (1.0 + Game.skill_dmg(lm)))
 		var home: Vector2 = pet.position
 		pet.play("attack")
-		pet.animation_finished.connect(func(): pet.play("idle"), CONNECT_ONE_SHOT)
+		pet.animation_finished.connect(func(): pet.play("walk" if walking else "idle"), CONNECT_ONE_SHOT)
 		await create_tween().tween_property(pet, "position:x", m.position.x - 30, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN).finished
 		mat.set_shader_parameter("flash", 1.0)
 		var eff := Game.effectiveness(mv["tipo"], et)
@@ -1381,7 +1383,7 @@ func _do_evolutions() -> void:
 		if i >= 0 and i < pets.size():
 			var pet = pets[i]
 			pet.sprite_frames = Game.monster_frames(m["id"])
-			pet.play("idle")
+			pet.play("walk" if walking else "idle")
 			pet.foot = Game.foot_offset(m["id"])
 			pet.offset = pet.foot
 			pet.base = 0.45 if Game.FOOT[m["id"]] > 85 else 0.58
