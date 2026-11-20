@@ -141,7 +141,7 @@ func _select(id: int) -> void:
 	spr.centered = false
 	spr.offset = Game.foot_offset(id)
 	spr.scale = Vector2(1.3, 1.3)
-	spr.position = Vector2(250, 186)
+	spr.position = Vector2(262, 186)
 	spr.material = Game.sprite_mat()
 	if not caught:
 		(spr.material as ShaderMaterial).set_shader_parameter("silhouette", 1.0)
@@ -192,7 +192,7 @@ func _select(id: int) -> void:
 	var aw := Label.new()
 	aw.text = "Forma final pode DESPERTAR depois de purificar os 3 mundos (Nv %d)." % Game.AWAKEN_LV
 	aw.position = Vector2(12, 136)
-	aw.size = Vector2(170, 30)
+	aw.size = Vector2(150, 40)
 	aw.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	aw.add_theme_font_size_override("font_size", 7)
 	aw.add_theme_color_override("font_color", Color("ffcf6a"))
