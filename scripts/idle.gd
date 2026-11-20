@@ -106,7 +106,7 @@ func _ready() -> void:
 	add_child(sfx)
 	_build_hud()
 	_offline_gains()
-	_heal_party(1.0, true)
+	_heal_party(1.0)
 	if progress >= 100.0 and Game.zone_of(my_region) >= Game.ZONES and Game.badges <= my_region:
 		_sanctuary_ready.call_deferred()
 	_log("%s começou a explorar %s." % [Game.mon_name(Game.team[0]), reg["nome"]])
@@ -235,6 +235,8 @@ func _gui_input(event: InputEvent) -> void:
 	if dueling:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed and _try_revive_at(event.position):
+			return
 		if event.pressed:
 			dragging = true
 			drag_off = DisplayServer.mouse_get_position() - get_window().position
@@ -244,6 +246,39 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and dragging:
 		get_window().position = DisplayServer.mouse_get_position() - drag_off
 		_dock_panel()
+
+
+## Clicar numa alma-nuvem gasta 1 Orbe de Alma e traz o Digialma de volta.
+func _try_revive_at(p: Vector2) -> bool:
+	for i in mini(pets.size(), Game.team.size()):
+		var pet = pets[i]
+		if not pet.soul:
+			continue
+		if absf(p.x - pet.position.x) < 16.0 and p.y > pet.position.y - 44.0 and p.y < pet.position.y + 4.0:
+			var m: Dictionary = Game.team[i]
+			if int(Game.inventory.get("orbe_alma", 0)) <= 0:
+				_pop_icon(pet.position + Vector2(0, -44), "cadeado")
+				_log("Sem Orbe de Alma: %s continua como alma." % Game.mon_name(m), Color("c8b8ff"))
+				return true
+			Game.inventory["orbe_alma"] = int(Game.inventory["orbe_alma"]) - 1
+			_revive(i, 0.5)
+			return true
+	return false
+
+
+func _revive(i: int, frac: float) -> void:
+	var m: Dictionary = Game.team[i]
+	m["hp"] = maxi(1, int(Game.max_hp(m) * frac))
+	if i < pets.size():
+		var pet = pets[i]
+		pet.set_soul(false)
+		pet.play("walk" if walking else "idle")
+		_sparkle(pet.position + Vector2(0, -24))
+		_burst(pet.position + Vector2(0, -20), Color("9effd8"), 18)
+		_pop_icon(pet.position + Vector2(0, -44), "coracao")
+	Game.sfx("evolucao", -6.0)
+	_log("%s voltou da forma de alma!" % Game.mon_name(m), Color("9effd8"))
+	_refresh()
 
 
 func _open_full() -> void:
@@ -256,7 +291,7 @@ func _open_bag() -> void:
 
 
 func _open_duel() -> void:
-	if Game.duel_queue.is_empty() or dueling:
+	if Game.duel_queue.is_empty() or dueling or _lead_idx() < 0:
 		return
 	if Game.options.get("duelo_faixa", true):
 		want_duel = true  # começa assim que o encontro atual terminar
@@ -423,7 +458,7 @@ func _build_hud() -> void:
 	row.add_theme_constant_override("separation", 2)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(row)
-	for k in [["laco", "Nível do Elo (capturar raros exige nível)"], ["purif", "Purificados"], ["bits", "Bits ganhos"], ["gema", "Amuletos achados"], ["coracao", "Novos parceiros"]]:
+	for k in [["laco", "Nível do Elo (capturar raros exige nível)"], ["purif", "Purificados"], ["bits", "Bits ganhos"], ["gema", "Amuletos achados"], ["coracao", "Novos parceiros"], ["orbe", "Orbes de Alma: clique numa alma-nuvem para reviver o Digialma"]]:
 		var ic := _ico(k[0])
 		ic.tooltip_text = k[1]
 		ic.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -438,7 +473,7 @@ func _build_hud() -> void:
 	log_l.visible = false
 	add_child(log_l)
 	var bx := HBoxContainer.new()
-	bx.position = Vector2(W - FADE * 0.5 - 112, 2)
+	bx.position = Vector2(W - FADE * 0.5 - 158, 2)
 	bx.add_theme_constant_override("separation", 3)
 	add_child(bx)
 	hud.append(bx)
@@ -452,6 +487,12 @@ func _build_hud() -> void:
 	help.tooltip_text = "Como jogar"
 	help.pressed.connect(_show_help)
 	bx.add_child(help)
+	var mp := _icon_btn("mapa", "Mapa: mundos, zonas e o que já foi purificado")
+	mp.pressed.connect(func(): _open_panel("res://scenes/mapa_idle.tscn"))
+	bx.add_child(mp)
+	var dx := _icon_btn("dex", "Digidex: todos os Digialmas que você já encontrou")
+	dx.pressed.connect(func(): _open_panel("res://scenes/digidex.tscn"))
+	bx.add_child(dx)
 	var bag := _icon_btn("bolsa", "Bolsa: itens, amuletos, Árvore de Alma e equipe")
 	bag.pressed.connect(_open_bag)
 	bx.add_child(bag)
@@ -547,6 +588,7 @@ func _refresh() -> void:
 		cnt["bits"].text = str(bits_gained)
 		cnt["gema"].text = str(items_found)
 		cnt["coracao"].text = str(captured)
+		cnt["orbe"].text = str(int(Game.inventory.get("orbe_alma", 0)))
 	_sync_progress()
 	prog.value = progress
 	var z := Game.zone_of(my_region)
@@ -600,7 +642,9 @@ func _spawn_party() -> void:
 		pet.offset = pet.foot
 		pet.flip_h = true
 		pet.phase = i * 1.3
-		pet.base = 0.45 if Game.FOOT[m["id"]] > 85 else 0.58
+		if m.get("desperto", false):
+			pet.set_awakened.call_deferred(true)
+		pet.base = 0.45 if Game.FOOT.get(m["id"], 80) > 85 else 0.58
 		pet.walking = true
 		pet.position = Vector2(240 - i * 38, GROUND)
 		stage.add_child(pet)
@@ -650,15 +694,12 @@ func _process(delta: float) -> void:
 	for i in hp_bars.size():
 		if i < pets.size() and i < Game.team.size():
 			var hb = hp_bars[i]
-			hb.position = pets[i].position + Vector2(-10, -40 if Game.FOOT[Game.team[i]["id"]] > 85 else -36)
+			hb.position = pets[i].position + Vector2(-10, -40 if Game.FOOT.get(Game.team[i]["id"], 80) > 85 else -36)
 			hb.target = clampf(float(Game.team[i]["hp"]) / Game.max_hp(Game.team[i]), 0.0, 1.0)
 			hb.visible = not dueling and (hb.target < 0.999 or hud_a > 0.05)
-			# aparência segue a vida: desmaiado = escurecido; vivo = normal
+			# aparência segue a vida: caído = alma-nuvem; vivo = normal
 			var fainted: bool = int(Game.team[i]["hp"]) <= 0
-			if fainted:
-				pets[i].modulate = FAINT
-			elif pets[i].modulate == FAINT:
-				pets[i].modulate = Color.WHITE
+			pets[i].set_soul(fainted, Game.MONSTERS[Game.team[i]["id"]]["cor"])
 	if not walking:
 		if amb2:
 			amb2.drift = 0.0
@@ -734,7 +775,7 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 	m.material = Game.sprite_mat()
 	var mat := m.material as ShaderMaterial
 	mat.set_shader_parameter("nefasto", 1.0)
-	var bs := 0.45 if Game.FOOT[e["id"]] > 85 else 0.58
+	var bs := 0.45 if Game.FOOT.get(e["id"], 80) > 85 else 0.58
 	m.scale = Vector2(bs, bs)
 	m.position = Vector2(W + 40, GROUND)
 	stage.add_child(m)
@@ -786,6 +827,20 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 		Game.cristais += 1
 		_pop_icon(mpos + Vector2(0, -30), "res")
 		Game.sfx("cristal")
+	# Orbe de Alma (o único jeito de reviver quem virou alma)
+	if rng.randf() < 0.025 + rar * 0.015:
+		Game.inventory["orbe_alma"] = int(Game.inventory.get("orbe_alma", 0)) + 1
+		_pop_icon(mpos + Vector2(6, -34), "orbe")
+		Game.sfx("item")
+		_log("Achou um Orbe de Alma!", Color("9effe8"))
+	# Cristal do Despertar: só nos mapas já purificados, zonas altas
+	if Game.all_purified and Game.zone_of(my_region) >= 8 and rng.randf() < 0.012:
+		Game.inventory["cristal_despertar"] = int(Game.inventory.get("cristal_despertar", 0)) + 1
+		_pop_icon(mpos + Vector2(-6, -34), "gema")
+		Game.sfx("vitoria", -6.0)
+		_log("Um CRISTAL DO DESPERTAR!", Color("ffd25a"))
+		for mm in Game.team:
+			_check_evo(mm)
 	var auto_ch: float = [0.0, 0.15, 0.3][Game.elo_level("auto")]
 	if rng.randf() < auto_ch:
 		e["hp"] = Game.max_hp(e)
@@ -829,7 +884,7 @@ func _check_zone() -> void:
 	if Game.zone_auto:
 		Game.zone[my_region] = z + 1
 		Game.zone_kills[my_region] = 0
-		_heal_party(1.0, true)
+		_heal_party(1.0)
 		_sparkle(kid.position + Vector2(0, -30))
 		_pop_text(kid.position + Vector2(-6, -50), "%d-%d" % [my_region + 1, z + 1], Color("ffd84a"))
 		Game.sfx("zona")
@@ -864,6 +919,22 @@ func _step_zone(d: int) -> void:
 	_refresh()
 
 
+## Viagem pelo Mapa do Mundo: vai direto para uma zona já liberada.
+func travel_to(r: int, z: int) -> void:
+	if dueling:
+		return
+	z = clampi(z, 1, maxi(1, int(Game.zone_max.get(r, 1))) if Game.region_corrupt(r) else Game.ZONES)
+	Game.zone[r] = z
+	Game.zone_kills[r] = 0
+	if r != my_region:
+		Game.region = r
+		Game.change_scene("res://scenes/idle.tscn")
+		return
+	_sparkle(kid.position + Vector2(0, -30))
+	_pop_text(kid.position + Vector2(-6, -50), "%d-%d" % [r + 1, z], Color("ffd84a"))
+	_refresh()
+
+
 func _lead_idx() -> int:
 	for i in mini(Game.team.size(), pets.size()):
 		if int(Game.team[i]["hp"]) > 0:
@@ -878,6 +949,7 @@ func _heal_party(frac: float, revive := false) -> void:
 			continue
 		m["hp"] = mini(Game.max_hp(m), int(m["hp"]) + int(Game.max_hp(m) * frac))
 		if i < pets.size():
+			pets[i].set_soul(false)
 			pets[i].modulate = Color.WHITE
 
 
@@ -954,12 +1026,40 @@ func _fight(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> bool:
 			lm["hp"] = maxi(0, int(lm["hp"]) - d2)
 			_pop_text(pet.position + Vector2(0, -34), str(d2), Color("ff9a9a"))
 			pet.modulate = Color(1.6, 0.6, 0.6)
-			get_tree().create_timer(0.12).timeout.connect(func(): if is_instance_valid(pet): pet.modulate = Color.WHITE if int(lm["hp"]) > 0 else FAINT)
+			get_tree().create_timer(0.12).timeout.connect(func(): if is_instance_valid(pet) and not pet.soul: pet.modulate = Color.WHITE)
 			if lm["hp"] <= 0:
 				_burst(pet.position + Vector2(0, -20), Color(0.6, 0.6, 0.7), 10)
 		create_tween().tween_property(m, "position", back, 0.22)
+		await _support_heal()
 		await get_tree().create_timer(0.4).timeout
 	return false
+
+
+## Suportes vivos cuidam do time: às vezes curam quem está mais ferido.
+func _support_heal() -> void:
+	for si in mini(Game.team.size(), pets.size()):
+		var h: Dictionary = Game.team[si]
+		if int(h["hp"]) <= 0 or not Game.is_support(h) or rng.randf() > 0.4:
+			continue
+		var best := -1
+		var worst := 0.95
+		for ti in mini(Game.team.size(), pets.size()):
+			var t: Dictionary = Game.team[ti]
+			if int(t["hp"]) <= 0:
+				continue
+			var f := float(t["hp"]) / Game.max_hp(t)
+			if f < worst:
+				worst = f
+				best = ti
+		if best < 0:
+			return
+		var tm: Dictionary = Game.team[best]
+		var amt := Game.heal_amount(h, tm)
+		tm["hp"] = mini(Game.max_hp(tm), int(tm["hp"]) + amt)
+		_pop_icon(pets[si].position + Vector2(0, -38), "cura")
+		_pop_text(pets[best].position + Vector2(0, -34), "+%d" % amt, Color("6fe08a"))
+		_burst(pets[best].position + Vector2(0, -20), Color("6fe08a"), 8)
+		await get_tree().create_timer(0.2).timeout
 
 
 ## O grupo inteiro caiu: o Nefasto vence, todos voltam uma zona e se recuperam.
@@ -972,9 +1072,9 @@ func _defeat(m: AnimatedSprite2D) -> void:
 	var z := Game.zone_of(my_region)
 	Game.zone[my_region] = maxi(1, z - 1)
 	Game.zone_kills[my_region] = 0
-	_heal_party(1.0, true)
-	for p in pets:
-		p.modulate = Color.WHITE
+	# o Elo puxa as almas de volta só quando o grupo INTEIRO cai (fracos)
+	for i in Game.team.size():
+		_revive(i, 0.3)
 	print("[idle] derrota: zona %d -> %d" % [z, Game.zone_of(my_region)])
 	_refresh()
 
@@ -1044,7 +1144,7 @@ func _duel_call(e: Dictionary) -> void:
 	m.offset = Game.foot_offset(e["id"])
 	m.material = Game.sprite_mat()
 	(m.material as ShaderMaterial).set_shader_parameter("nefasto", 1.0)
-	var bs := 0.45 if Game.FOOT[e["id"]] > 85 else 0.58
+	var bs := 0.45 if Game.FOOT.get(e["id"], 80) > 85 else 0.58
 	m.scale = Vector2(bs, bs)
 	m.position = Vector2(W + 40, GROUND)
 	stage.add_child(m)
@@ -1241,7 +1341,7 @@ func _sanctuary_challenge() -> void:
 	for p in pets:
 		saved[p] = p.position
 	saved[kid] = kid.position
-	var lead: Dictionary = Game.team[0]
+	var lead: Dictionary = Game.team[maxi(0, _lead_idx())]
 	lead["hp"] = Game.max_hp(lead)
 	var energy := 1
 	var sync := 0.0
@@ -1304,6 +1404,11 @@ func _sanctuary_win() -> void:
 	Game.region_unlocked = mini(3, was + 2)
 	Game.elo_charges += 2
 	_elo_xp(50)
+	Game.inventory["orbe_alma"] = int(Game.inventory.get("orbe_alma", 0)) + 2
+	if was == 2:
+		Game.inventory["cristal_despertar"] = int(Game.inventory.get("cristal_despertar", 0)) + 1
+	# santuário purificado devolve as almas
+	_heal_party(1.0, true)
 	# insígnia sobe brilhando sobre o personagem
 	var badge := Sprite2D.new()
 	badge.texture = Game.tex("res://assets/badges/%s.png" % ld["badge"])
@@ -1354,7 +1459,7 @@ func _sanctuary_win() -> void:
 ## Evolução no idle: abre uma janelinha (o painel) com a cena da evolução.
 func _check_evo(m: Dictionary) -> void:
 	var evo: Array = Game.MONSTERS[m["id"]]["evo"]
-	if evo.size() > 0 and m["lv"] >= evo[1] and not pending_evo.has(m):
+	if ((evo.size() > 0 and m["lv"] >= evo[1]) or Game.can_awaken(m)) and not pending_evo.has(m):
 		pending_evo.append(m)
 
 
@@ -1368,8 +1473,14 @@ func _do_evolutions() -> void:
 			_sparkle(pets[i].position + Vector2(0, -24))
 			_burst(pets[i].position + Vector2(0, -20), Game.MONSTERS[m["id"]]["cor"], 16)
 		await get_tree().create_timer(0.5).timeout
+		if Game.MONSTERS[m["id"]]["evo"].is_empty():
+			await _do_awaken(m, i)
+			continue
 		# janelinha pequena, sem roubar o foco (aparece sem você pedir)
 		var w := await _make_panel(Vector2i(320, 180), Vector2i(288, 162))
+		# janela transparente: nunca aparece o cinza padrão antes do 1º quadro
+		w.transparent_bg = true
+		w.transparent = true
 		w.unfocusable = true
 		_dock_panel()
 		var ev = preload("res://scripts/evolution.gd").new()
@@ -1386,11 +1497,30 @@ func _do_evolutions() -> void:
 			pet.play("walk" if walking else "idle")
 			pet.foot = Game.foot_offset(m["id"])
 			pet.offset = pet.foot
-			pet.base = 0.45 if Game.FOOT[m["id"]] > 85 else 0.58
+			pet.base = 0.45 if Game.FOOT.get(m["id"], 80) > 85 else 0.58
 			_burst(pet.position + Vector2(0, -20), Color("ffd84a"), 20)
 			_pop_icon(pet.position + Vector2(0, -40), "nivel")
 		_check_evo(m)
 	_refresh()
+
+
+## DESPERTAR: momento raro e grandioso, então abre o painel grande.
+func _do_awaken(m: Dictionary, i: int) -> void:
+	if not Game.can_awaken(m):
+		return
+	var w := await _make_panel()
+	w.transparent_bg = true
+	w.transparent = true
+	var ev = preload("res://scripts/evolution.gd").new()
+	w.add_child(ev)
+	await ev.run_awaken(m)
+	if is_instance_valid(w):
+		w.queue_free()
+	if i >= 0 and i < pets.size():
+		pets[i].set_awakened(true)
+		_burst(pets[i].position + Vector2(0, -20), Color("ffd25a"), 30)
+		_sparkle(pets[i].position + Vector2(0, -30))
+	_log("%s DESPERTOU!" % Game.MONSTERS[m["id"]]["nome"], Color("ffd25a"))
 
 
 func _give_xp(xp: int) -> void:

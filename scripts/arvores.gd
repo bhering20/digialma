@@ -35,10 +35,11 @@ func _ready() -> void:
 	add_child(th)
 	if Game.return_to.begins_with("tab:"):
 		tab = Game.return_to.substr(4)
-	for k in [["itens", "ITENS"], ["alma", "ALMA"], ["fusao", "FUSÃO"], ["elo", "ELO"], ["equipe", "EQUIPE"]]:
+	for k in [["itens", "AMULETOS"], ["mochila", "MOCHILA"], ["alma", "ALMA"], ["fusao", "FUSÃO"], ["elo", "ELO"], ["equipe", "EQUIPE"]]:
 		var b := Button.new()
 		b.text = k[1]
-		b.custom_minimum_size = Vector2(64, 22)
+		b.custom_minimum_size = Vector2(56, 22)
+		b.add_theme_font_size_override("font_size", 8)
 		var key: String = k[0]
 		b.pressed.connect(func():
 			tab = key
@@ -47,7 +48,7 @@ func _ready() -> void:
 		th.add_child(b)
 		tabs[key] = b
 	bits_l = Label.new()
-	bits_l.position = Vector2(438, 8)
+	bits_l.position = Vector2(470, 8)
 	bits_l.add_theme_color_override("font_color", Color("ffd84a"))
 	add_child(bits_l)
 	var back := Button.new()
@@ -91,6 +92,8 @@ func _build() -> void:
 	match tab:
 		"itens":
 			_build_itens()
+		"mochila":
+			_build_mochila()
 		"alma":
 			_build_alma()
 		"fusao":
@@ -292,7 +295,7 @@ class TreeView extends Control:
 				var cost := str(nd["custo"])
 				draw_circle(p + Vector2(r * 0.75, r * 0.75), 5.0, Color("0a0614"))
 				draw_string(fnt, p + Vector2(r * 0.75 - 3, r * 0.75 + 3), cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("ffd84a") if can_buy else Color(0.6, 0.6, 0.7))
-		# retrato no centro do DESPERTAR
+		# retrato no centro da CENTELHA
 		if portrait and m["tree"].has("a1"):
 			draw_texture(portrait, _p("a1") - portrait.get_size() * 0.5, Color(1, 1, 1, 0.9))
 		# legenda dos ramos
@@ -668,15 +671,163 @@ func _build_fusao() -> void:
 	go.disabled = not ok or why2 != ""
 	go.pressed.connect(func(): _do_fuse(a, list[fpick]))
 	body.add_child(go)
+	var help := Button.new()
+	help.text = "?  COMO FUNCIONA"
+	help.position = Vector2(390, 260)
+	help.custom_minimum_size = Vector2(46, 22)
+	help.add_theme_font_size_override("font_size", 8)
+	help.text = "?"
+	help.tooltip_text = "Como funcionam as fusões"
+	help.pressed.connect(_fusion_help)
+	body.add_child(help)
 	if fmode == "res":
-		info.text = "RESSONÂNCIA: funda um Digialma da mesma família no seu: +5% de atributos (até 5x). Se o doador for mais raro, a raridade passa."
+		info.text = "RESSONÂNCIA: queima uma cópia da mesma família. +5% de atributos por nível (máx. 5). A RARIDADE NÃO MUDA."
 	else:
-		info.text = "ESSÊNCIA: funda uma EVOLUÇÃO de outro tipo: ganha o golpe daquele elemento e passa a explorar novos pontos fracos."
+		info.text = "ESSÊNCIA: queima uma EVOLUÇÃO de outro tipo. Ganha um 2º elemento, o golpe dele e novos pontos fracos."
+
+
+## Explicação completa das duas fusões (sobreposta ao painel).
+func _fusion_help() -> void:
+	_overlay("COMO FUNCIONAM AS FUSÕES", [
+		["res", "RESSONÂNCIA  ·  queimar cópias  ·  1 Cristal de Ressonância", Color("7affe0")],
+		["", "Escolha um Digialma e queime outro da MESMA FAMÍLIA (ex.: Brasito, Tatubrasa e Vulcatatu são da mesma família). O queimado desaparece para sempre.", Color.WHITE],
+		["", "O seu ganha +5% de vida, ataque e defesa por nível de Ressonância (até 5 níveis = +25%).", Color.WHITE],
+		["", "A RARIDADE NÃO MUDA. O NÍVEL NÃO MUDA. Para ter um Lendário, você precisa capturar um Lendário.", Color("ffd84a")],
+		["fusao", "ESSÊNCIA  ·  novo elemento  ·  2 Cristais de Ressonância", Color("ff9a5a")],
+		["", "Queime uma forma EVOLUÍDA de OUTRO tipo. O seu ganha um 2º elemento: um golpe novo e passa a acertar os pontos fracos desse elemento.", Color.WHITE],
+		["", "Elementos que combinam viram HÍBRIDOS: Fogo + Água = Vapor, Elétrico + Água = Tormenta, Planta + Água = Pântano... Uma essência por Digialma.", Color.WHITE],
+		["res", "Cristais de Ressonância caem dos Nefastos no idle e dos duelos contra raros.", Color(1, 1, 1, 0.7)],
+	])
+
+
+## Painel de explicação genérico (fecha com um clique).
+func _overlay(title: String, rows: Array) -> void:
+	var o := Control.new()
+	o.size = Game.BASE
+	o.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(o)
+	var bg := ColorRect.new()
+	bg.color = Color(0.03, 0.02, 0.08, 0.96)
+	bg.size = Game.BASE
+	o.add_child(bg)
+	var tl := Label.new()
+	Game.heading(tl, title, 14)
+	tl.add_theme_color_override("font_color", Color("ffd84a"))
+	tl.position = Vector2(20, 12)
+	o.add_child(tl)
+	var y := 42.0
+	for r in rows:
+		if r[0] != "":
+			var ic := TextureRect.new()
+			ic.texture = Game.tex("res://assets/ui/idle_%s.png" % r[0])
+			ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			ic.position = Vector2(20, y)
+			o.add_child(ic)
+		var l := Label.new()
+		l.text = r[1]
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.position = Vector2(40, y - 1)
+		l.size = Vector2(580, 30)
+		l.add_theme_font_size_override("font_size", 9 if r[0] != "" else 8)
+		l.add_theme_color_override("font_color", r[2])
+		o.add_child(l)
+		y += 34.0 if r[1].length() > 110 else 24.0
+	var ok := Button.new()
+	ok.text = "ENTENDI"
+	ok.position = Vector2(530, 324)
+	ok.custom_minimum_size = Vector2(90, 24)
+	ok.pressed.connect(o.queue_free)
+	o.add_child(ok)
+
+
+# ---------------------------------------------------------------- MOCHILA
+## Tudo o que você carrega, com para que serve cada coisa (e USAR quando dá).
+func _build_mochila() -> void:
+	var dim := ColorRect.new()
+	dim.color = Color(0.04, 0.03, 0.1, 0.82)
+	dim.position = Vector2(6, 0)
+	dim.size = Vector2(628, 290)
+	body.add_child(dim)
+	var sc := ScrollContainer.new()
+	sc.position = Vector2(12, 4)
+	sc.size = Vector2(616, 284)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	body.add_child(sc)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	sc.add_child(v)
+	var rows: Array = []
+	for k in ["orbe_alma", "pocao", "super_pocao", "cristal_despertar", "chip_elo", "fruta", "doce", "ovo", "mapa", "bits"]:
+		if int(Game.inventory.get(k, 0)) > 0:
+			rows.append([k, Game.ITEMS[k]["nome"], int(Game.inventory[k]), Game.ITEMS[k]["desc"], Game.ITEM_ICON.get(k, "gema")])
+	rows.insert(1, ["cristais", "Cristal de Ressonância", Game.cristais, "Combustível das FUSÕES: 1 para Ressonância (queimar uma cópia: +5% de atributos, raridade não muda), 2 para Essência (ganhar um 2º elemento). Cai dos Nefastos e dos duelos.", "res"])
+	rows.append(["amuletos", "Amuletos de Alma", Game.gear.size(), "Equipe até 2 por Digialma (2º espaço no Nv 20). Presa = dano, Escama = menos dano recebido, Coração = vida, Pena = janela de esquiva, Trevo = XP, Moeda = bits, Cristal = Sincronia. 3 iguais viram 1 mais raro.", "gema"])
+	for r in rows:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		row.custom_minimum_size = Vector2(600, 36)
+		v.add_child(row)
+		var ic := TextureRect.new()
+		ic.texture = Game.tex("res://assets/ui/idle_%s.png" % r[4])
+		ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		ic.custom_minimum_size = Vector2(20, 20)
+		row.add_child(ic)
+		var tv := VBoxContainer.new()
+		tv.add_theme_constant_override("separation", 0)
+		tv.custom_minimum_size = Vector2(500, 0)
+		row.add_child(tv)
+		var nm := Label.new()
+		nm.text = "%s  x%d" % [r[1], r[2]]
+		nm.add_theme_font_size_override("font_size", 9)
+		nm.add_theme_color_override("font_color", Color("ffd84a"))
+		tv.add_child(nm)
+		var d := Label.new()
+		d.text = r[3]
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		d.custom_minimum_size = Vector2(500, 0)
+		d.add_theme_font_size_override("font_size", 8)
+		d.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
+		tv.add_child(d)
+		if r[0] in ["orbe_alma", "pocao", "super_pocao"]:
+			var use := Button.new()
+			use.text = "USAR"
+			use.custom_minimum_size = Vector2(56, 22)
+			use.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			use.add_theme_font_size_override("font_size", 8)
+			var key: String = r[0]
+			use.pressed.connect(func(): _use_item(key))
+			row.add_child(use)
+	info.text = "Passe o olho: cada item diz para que serve. Almas (Digialmas caídos) só voltam com Orbe de Alma."
+
+
+func _use_item(k: String) -> void:
+	if k == "orbe_alma":
+		var ri := Game.use_soul_orb()
+		info.text = ("%s voltou da forma de alma!" % Game.mon_name(Game.team[ri])) if ri >= 0 else "Ninguém virou alma: o Orbe fica guardado."
+	else:
+		var amt := 20 if k == "pocao" else 60
+		var target := {}
+		for m in Game.team:
+			if int(m["hp"]) > 0 and int(m["hp"]) < Game.max_hp(m):
+				target = m
+				break
+		if target.is_empty():
+			info.text = "Ninguém precisa de cura (almas só voltam com Orbe)."
+			return
+		target["hp"] = mini(Game.max_hp(target), int(target["hp"]) + amt)
+		Game.inventory[k] = int(Game.inventory[k]) - 1
+		if Game.inventory[k] <= 0:
+			Game.inventory.erase(k)
+		info.text = "%s recuperou %d de vida." % [Game.mon_name(target), amt]
+	var keep := info.text
+	_build()
+	info.text = keep
 
 
 func _fuse_preview(a: Dictionary, b: Dictionary) -> String:
 	if fmode == "res":
-		return "%s absorve %s: Ressonância %d > %d%s. (%s some.)" % [Game.mon_name(a), Game.mon_name(b), int(a.get("res", 0)), int(a.get("res", 0)) + 1, ", raridade sobe!" if int(b.get("rar", 0)) > int(a.get("rar", 0)) else "", Game.mon_name(b)]
+		return "%s queima %s: Ressonância %d > %d (+5%% atributos). A raridade continua %s. (%s some.)" % [Game.mon_name(a), Game.mon_name(b), int(a.get("res", 0)), int(a.get("res", 0)) + 1, Game.RARITY[int(a.get("rar", 0))]["nome"], Game.mon_name(b)]
 	var tp := Game.essence_result(a, b)
 	var hyb: bool = Game.HYBRIDS.has(tp)
 	var head := ("%s + %s = %s! " % [Game.MONSTERS[a["id"]]["tipo"].to_upper(), Game.MONSTERS[b["id"]]["tipo"].to_upper(), tp.to_upper()]) if hyb else ""

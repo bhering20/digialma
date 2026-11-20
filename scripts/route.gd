@@ -39,6 +39,21 @@ class Pet extends AnimatedSprite2D:
 	var last_hop := 1.0
 	var shadow: Shadow
 	var base := 1.0
+	## Alma-nuvem: o Digialma caiu e virou uma nuvenzinha de alma com a silhueta
+	## e as cores dele. Só volta com um Orbe de Alma.
+	var soul := false
+	var soul_col := Color.WHITE
+	var cloud: SoulCloud
+	var aura: AwakenAura
+
+	## Despertos andam com uma aura dourada.
+	func set_awakened(on: bool) -> void:
+		if on and not is_instance_valid(aura):
+			aura = AwakenAura.new()
+			aura.show_behind_parent = true
+			add_child(aura)
+		elif not on and is_instance_valid(aura):
+			aura.queue_free()
 
 	func _ready() -> void:
 		shadow = Shadow.new()
@@ -46,8 +61,44 @@ class Pet extends AnimatedSprite2D:
 		shadow.show_behind_parent = true
 		add_child(shadow)
 
+	func set_soul(on: bool, col := Color.WHITE) -> void:
+		if on == soul:
+			return
+		soul = on
+		soul_col = col
+		if material == null or not (material is ShaderMaterial):
+			material = Game.sprite_mat()
+		if on:
+			(material as ShaderMaterial).set_shader_parameter("silhouette", 0.55)
+			modulate = Color(col.lightened(0.35), 0.72)
+			cloud = SoulCloud.new()
+			cloud.col = col
+			cloud.show_behind_parent = true
+			add_child(cloud)
+		else:
+			(material as ShaderMaterial).set_shader_parameter("silhouette", 0.0)
+			modulate = Color.WHITE
+			if is_instance_valid(cloud):
+				cloud.queue_free()
+
 	func _process(delta: float) -> void:
 		t += delta
+		if soul:
+			speed_scale = 0.4
+			offset = foot - Vector2(0, 9.0 + round(sin(t * 1.8 + phase) * 3.0))
+			scale = base * Vector2(0.86, 0.86)
+			rotation = sin(t * 1.3 + phase) * 0.04
+			shadow.k = 0.55
+			modulate = Color(soul_col.lightened(0.35), minf(modulate.a, 0.72))
+			if is_instance_valid(aura):
+				aura.visible = false
+			if is_instance_valid(cloud):
+				cloud.position = (offset + Vector2(sprite_frames.get_frame_texture(animation, 0).get_width() * 0.5, sprite_frames.get_frame_texture(animation, 0).get_height() * 0.62)) if sprite_frames else Vector2.ZERO
+			return
+		if is_instance_valid(aura) and sprite_frames:
+			aura.visible = true
+			var tx := sprite_frames.get_frame_texture(animation, 0)
+			aura.position = offset + Vector2(tx.get_width() * 0.5, tx.get_height() * 0.7)
 		if walking:
 			speed_scale = 1.8
 			var ph := t * 9.0 + phase
@@ -85,6 +136,46 @@ class Shadow extends Node2D:
 			var a := TAU * i / 20.0
 			pts.append(Vector2(cos(a) * w * k, 1.0 + sin(a) * h * k).round())
 		draw_colored_polygon(pts, Color(0, 0, 0, 0.22))
+
+
+## Nuvem de alma: fumacinhas suaves na cor do Digialma, subindo devagar.
+class SoulCloud extends Node2D:
+	var col := Color.WHITE
+	var t := 0.0
+
+	func _process(delta: float) -> void:
+		t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var base_c := col.lightened(0.45)
+		for i in 7:
+			var a := TAU * i / 7.0 + t * 0.7
+			var r := 14.0 + 3.0 * sin(t * 1.6 + i)
+			var p := Vector2(cos(a) * r, sin(a) * r * 0.45 + 6.0)
+			draw_circle(p.round(), 9.0 + 2.0 * sin(t * 2.0 + i * 1.7), Color(base_c, 0.22))
+		for i in 4:
+			var k := fmod(t * 0.35 + i * 0.25, 1.0)
+			var p := Vector2(sin(t + i * 2.3) * 10.0, 4.0 - k * 34.0)
+			draw_circle(p.round(), 2.5 * (1.0 - k) + 0.5, Color(base_c.lightened(0.3), 0.5 * (1.0 - k)))
+
+
+## Aura do Despertar: chamas douradas subindo e um halo pulsando.
+class AwakenAura extends Node2D:
+	var t := 0.0
+
+	func _process(delta: float) -> void:
+		t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pulse := 0.5 + 0.5 * sin(t * 3.0)
+		draw_circle(Vector2.ZERO, 26.0 + pulse * 3.0, Color(1.0, 0.82, 0.3, 0.08))
+		draw_circle(Vector2.ZERO, 18.0 + pulse * 2.0, Color(1.0, 0.9, 0.5, 0.08))
+		for i in 6:
+			var k := fmod(t * 0.6 + i / 6.0, 1.0)
+			var x := sin(i * 2.1 + t * 1.5) * 16.0
+			draw_circle(Vector2(x, 10.0 - k * 46.0).round(), 2.5 * (1.0 - k) + 0.5, Color(1.0, 0.85 - k * 0.3, 0.3, 0.7 * (1.0 - k)))
 
 
 ## Nuvenzinha de poeira quando o pé toca o chão.
@@ -310,11 +401,13 @@ func _spawn_team() -> void:
 		pet.flip_h = true
 		pet.phase = i * 1.3
 		# formas evoluídas grandes ficam menores no mapa para não engolir a tela
-		pet.base = 0.72 if Game.FOOT[Game.team[i]["id"]] > 85 else 1.0
+		pet.base = 0.72 if Game.FOOT.get(Game.team[i]["id"], 80) > 85 else 1.0
 		pet.walking = walking
 		pet.position = Vector2(250 - i * 62, GROUND_Y)
 		stage.add_child(pet)
 		pets.append(pet)
+		if int(Game.team[i]["hp"]) <= 0:
+			pet.set_soul.call_deferred(true, Game.MONSTERS[Game.team[i]["id"]]["cor"])
 	if kid == null:
 		kid = AnimatedSprite2D.new()
 		kid.sprite_frames = Game.char_frames(Game.player_char)
@@ -557,7 +650,7 @@ func _gym_hall(ld: Dictionary) -> void:
 		hall.queue_free()
 		await _purify()
 	await dialog.play(Game.STORY["lider%d_depois" % Game.region])
-	Game.heal_team(1.0)
+	Game.heal_team(1.0, true)  # o santuário purificado devolve as almas
 	Game.change_scene("res://scenes/map.tscn" if Game.region < 2 else "res://scenes/title.tscn")
 
 
@@ -767,7 +860,7 @@ func _ambush(e: Dictionary) -> void:
 	m.offset = Game.foot_offset(e["id"])
 	m.material = Game.sprite_mat()
 	(m.material as ShaderMaterial).set_shader_parameter("nefasto", 1.0)
-	var bs := 0.72 if Game.FOOT[e["id"]] > 85 else 1.0
+	var bs := 0.72 if Game.FOOT.get(e["id"], 80) > 85 else 1.0
 	m.z_index = 2
 	var ms := Shadow.new()
 	ms.w = 14.0
@@ -1257,6 +1350,6 @@ func _purify() -> void:
 
 
 func _lost() -> void:
-	Game.heal_team(1.0)
-	await dialog.play([["", "Você correu de volta para o mapa. Sua equipe descansou e está pronta de novo."]])
+	Game.heal_team(0.3, true)
+	await dialog.play([["", "Todos viraram almas... O Elo puxou o grupo de volta ao mapa, ainda fraco."]])
 	Game.change_scene("res://scenes/map.tscn")

@@ -52,13 +52,14 @@ func _input(ev: InputEvent) -> void:
 
 # ---------------------------------------------------------------- fluxo
 func run() -> String:
-	lead = Game.team[0]
+	var li: int = maxi(0, host._lead_idx())
+	lead = Game.team[li]
 	if not keep_hp:
 		lead["hp"] = Game.max_hp(lead)
 	e["hp"] = Game.max_hp(e)
 	if e.has("debug_hp"):
 		e["hp"] = int(Game.max_hp(e) * e["debug_hp"])
-	pet = host.pets[0]
+	pet = host.pets[li]
 	if pet.material == null:
 		pet.material = Game.sprite_mat()
 	await _setup()
@@ -99,9 +100,13 @@ func _setup() -> void:
 		saved[p] = p.position
 	saved[host.kid] = host.kid.position
 	create_tween().tween_property(host.kid, "position:x", 196.0, 0.4)
-	for i in range(1, host.pets.size()):
+	var slot := 1
+	for i in host.pets.size():
+		if host.pets[i] == pet:
+			continue
 		var t := create_tween()
-		t.tween_property(host.pets[i], "position:x", 150.0 - i * 26.0, 0.4)
+		t.tween_property(host.pets[i], "position:x", 150.0 - slot * 26.0, 0.4)
+		slot += 1
 		t.parallel().tween_property(host.pets[i], "modulate:a", 0.45, 0.4)
 	create_tween().tween_property(pet, "position:x", 262.0, 0.4)
 	# o Nefasto chega
@@ -113,7 +118,7 @@ func _setup() -> void:
 	m.material = Game.sprite_mat()
 	mat = m.material as ShaderMaterial
 	mat.set_shader_parameter("nefasto", 1.0)
-	var bs := 0.5 if Game.FOOT[e["id"]] > 85 else 0.66
+	var bs := 0.5 if Game.FOOT.get(e["id"], 80) > 85 else 0.66
 	m.scale = Vector2(bs, bs)
 	m.flip_h = false
 	m.position = Vector2(enter_x, GROUND)
@@ -205,7 +210,7 @@ func _choose() -> Dictionary:
 	for mk in Game.moves_of(lead):
 		var mv: Dictionary = Game.MOVES[mk]
 		var cost := Game.move_cost(mk)
-		var ic: String = "supremo" if mv.get("supremo", false) else ("especial" if mv["cd"] > 0 else "tipo_" + Game.TYPE_SLUG.get(mv["tipo"], "normal"))
+		var ic: String = "cura" if mv.has("cura") else ("supremo" if mv.get("supremo", false) else ("especial" if mv["cd"] > 0 else "tipo_" + Game.TYPE_SLUG.get(mv["tipo"], "normal")))
 		var b := _btn(ic, Game.TYPE_COLORS[mv["tipo"]], "%s (%s)" % [mv["nome"], mv["tipo"]])
 		if cost > 0:
 			b.text = str(cost)
@@ -373,6 +378,15 @@ func _tol() -> float:
 func _player_attack(mk: String) -> void:
 	var mv: Dictionary = Game.MOVES[mk]
 	energy -= Game.move_cost(mk)
+	if mv.has("cura"):
+		var amt := maxi(int(Game.max_hp(lead) * mv["cura"]), Game.heal_amount(lead, lead) * 3)
+		lead["hp"] = mini(Game.max_hp(lead), int(lead["hp"]) + amt)
+		host._burst(pet.position + Vector2(0, -20), Color("6fe08a"), 16)
+		_float(pet, "+%d" % amt, Color("6fe08a"))
+		Game.sfx("nivel", -6.0)
+		_bars()
+		await get_tree().create_timer(0.5).timeout
+		return
 	var col: Color = Game.TYPE_COLORS[mv["tipo"]]
 	var rings := 3 if mv.get("supremo", false) else (2 if mv["cd"] > 0 else 1)
 	_bars()

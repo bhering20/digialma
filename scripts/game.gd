@@ -19,7 +19,7 @@ const LEADERS := ["fire_boss", "grass_boss", "water_boss", "blond", "hat_girl", 
 
 # --- Monstros (id = número do sprite no pacote MPWSP01). Nomes e falas nossos.
 # hp/atk/def: multiplicadores de status. evo: [id da evolução, nível]. moves: golpes por nível.
-const MONSTERS := {
+var MONSTERS := {
 	7: {"nome": "Brasito", "tipo": "Fogo", "cor": Color("ff7a3d"), "hp": 1.0, "atk": 1.05, "def": 0.95, "evo": [8, 8], "evo_guarda": 17, "moves": ["investida", "brasa"], "jeito": "esquentadinho"},
 	8: {"nome": "Tatubrasa", "tipo": "Fogo", "cor": Color("ff7a3d"), "hp": 1.2, "atk": 1.25, "def": 1.15, "evo": [9, 14], "moves": ["investida", "brasa", "erupcao"], "jeito": "teimoso", "ramo": "furia"},
 	9: {"nome": "Vulcatatu", "tipo": "Fogo", "cor": Color("ff7a3d"), "hp": 1.45, "atk": 1.5, "def": 1.35, "evo": [], "moves": ["investida", "brasa", "erupcao"], "jeito": "orgulhoso", "ramo": "furia"},
@@ -42,7 +42,7 @@ const MONSTERS := {
 }
 
 # Linha do "pé" de cada sprite dentro do quadro de 96px (para encostar no chão/plataforma)
-const FOOT := {1: 68, 2: 74, 3: 89, 4: 72, 5: 78, 6: 81, 7: 71, 8: 78, 9: 93, 10: 70, 11: 73, 12: 67, 13: 76, 14: 91, 15: 63, 16: 75, 17: 78, 18: 93}
+var FOOT := {1: 68, 2: 74, 3: 89, 4: 72, 5: 78, 6: 81, 7: 71, 8: 78, 9: 93, 10: 70, 11: 73, 12: 67, 13: 76, 14: 91, 15: 63, 16: 75, 17: 78, 18: 93}
 ## Ritmo de ataque de cada espécie: [tempo até o impacto, é finta?].
 ## Comuns usam só o 1º golpe (a "assinatura"); raros e líderes fazem o padrão inteiro.
 const PATTERNS := {
@@ -61,14 +61,14 @@ const PATTERNS := {
 ## Golpes especiais custam Energia (ataques normais e aparos geram).
 const ENERGY_COST := 3
 const ENERGY_MAX := 5
-const TYPE_SPECIAL := {"Normal": "impacto", "Voador": "furacao", "Gelo": "nevasca", "Psíquico": "pesadelo", "Elétrico": "trovao", "Inseto": "enxame", "Fogo": "erupcao", "Água": "tsunami", "Planta": "floresta"}
-const TYPE_SUPREME := {"Fogo": "supernova", "Água": "abismo", "Planta": "ancestral", "Normal": "impacto_final", "Voador": "ceu_partido", "Gelo": "zero_absoluto", "Psíquico": "sonho_eterno", "Elétrico": "tempestade", "Inseto": "colmeia"}
+const TYPE_SPECIAL := {"Pedra": "avalanche", "Metal": "martelo", "Sombra": "eclipse", "Luz": "aurora", "Veneno": "nevoa_toxica", "Som": "sinfonia", "Cristal": "prisma", "Normal": "impacto", "Voador": "furacao", "Gelo": "nevasca", "Psíquico": "pesadelo", "Elétrico": "trovao", "Inseto": "enxame", "Fogo": "erupcao", "Água": "tsunami", "Planta": "floresta"}
+const TYPE_SUPREME := {"Pedra": "terremoto", "Metal": "forja", "Sombra": "noite_eterna", "Luz": "sol_nascente", "Veneno": "praga", "Som": "estrondo", "Cristal": "caleidoscopio", "Fogo": "supernova", "Água": "abismo", "Planta": "ancestral", "Normal": "impacto_final", "Voador": "ceu_partido", "Gelo": "zero_absoluto", "Psíquico": "sonho_eterno", "Elétrico": "tempestade", "Inseto": "colmeia"}
 
 ## ÁRVORE DE ALMA: cada Digialma ganha 1 Ponto de Alma (PA) por nível.
-## Teia de 15 nós: DESPERTAR no centro, FÚRIA à esquerda, GUARDA à direita,
+## Teia de 15 nós: CENTELHA no centro, FÚRIA à esquerda, GUARDA à direita,
 ## VÍNCULO embaixo. "pos" é a posição relativa ao centro na tela da árvore.
 const SOUL_TREE := {
-	"a1": {"nome": "DESPERTAR", "ramo": "raiz", "custo": 1, "req": "", "chave": true, "pos": Vector2(0, 0), "desc": "Libera o golpe especial do Digialma."},
+	"a1": {"nome": "CENTELHA", "ramo": "raiz", "custo": 1, "req": "", "chave": true, "pos": Vector2(0, 0), "desc": "Libera o golpe especial do Digialma."},
 	"f1": {"nome": "GARRA AFIADA", "ramo": "furia", "custo": 1, "req": "a1", "pos": Vector2(-58, -26), "desc": "+6% de dano."},
 	"f2": {"nome": "FERVOR", "ramo": "furia", "custo": 1, "req": "f1", "pos": Vector2(-104, -62), "desc": "+6% de dano."},
 	"f3": {"nome": "INSTINTO", "ramo": "furia", "custo": 1, "req": "f1", "pos": Vector2(-112, -2), "desc": "Combos perfeitos causam +10% de dano."},
@@ -135,7 +135,9 @@ const MOVES := {
 	"geada": {"nome": "Geada", "tipo": "Gelo", "poder": 13, "fx": "ice", "kind": "projetil", "cd": 0},
 	"mente": {"nome": "Onda Mental", "tipo": "Psíquico", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
 	"choque": {"nome": "Choque", "tipo": "Elétrico", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
-	# especiais de tipo (liberados pelo nó DESPERTAR para quem não tem especial próprio)
+	# golpe de SUPORTE: cura em vez de ferir (gasta energia como um especial)
+	"luz_vital": {"nome": "Luz Vital", "tipo": "Normal", "poder": 0, "cura": 0.35, "fx": "green", "kind": "projetil", "cd": 2},
+	# especiais de tipo (liberados pelo nó CENTELHA para quem não tem especial próprio)
 	"impacto": {"nome": "Impacto Brutal", "tipo": "Normal", "poder": 22, "fx": "scratch", "kind": "contato", "cd": 2},
 	"furacao": {"nome": "Furacão", "tipo": "Voador", "poder": 22, "fx": "scratch", "kind": "projetil", "cd": 2},
 	"nevasca": {"nome": "Nevasca", "tipo": "Gelo", "poder": 22, "fx": "ice", "kind": "projetil", "cd": 2},
@@ -154,6 +156,28 @@ const MOVES := {
 	"colmeia": {"nome": "Colmeia Real", "tipo": "Inseto", "poder": 32, "fx": "green", "kind": "projetil", "cd": 3, "supremo": true},
 	"ruido": {"nome": "Explosão de Ruído", "tipo": "Normal", "poder": 26, "fx": "explosion", "kind": "projetil", "cd": 0},
 	"picada": {"nome": "Picada", "tipo": "Inseto", "poder": 12, "fx": "scratch", "kind": "contato", "cd": 0},
+	# NOVOS ELEMENTOS (mid/end game): básico, especial e supremo
+	"pedrada": {"nome": "Pedrada", "tipo": "Pedra", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
+	"avalanche": {"nome": "Avalanche", "tipo": "Pedra", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"terremoto": {"nome": "Terremoto", "tipo": "Pedra", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"lamina": {"nome": "Lâmina de Aço", "tipo": "Metal", "poder": 13, "fx": "scratch", "kind": "contato", "cd": 0},
+	"martelo": {"nome": "Martelo de Ferro", "tipo": "Metal", "poder": 22, "fx": "scratch", "kind": "contato", "cd": 2},
+	"forja": {"nome": "Forja Divina", "tipo": "Metal", "poder": 32, "fx": "explosion", "kind": "contato", "cd": 3, "supremo": true},
+	"sombra": {"nome": "Garra Sombria", "tipo": "Sombra", "poder": 13, "fx": "scratch", "kind": "contato", "cd": 0},
+	"eclipse": {"nome": "Eclipse", "tipo": "Sombra", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"noite_eterna": {"nome": "Noite Eterna", "tipo": "Sombra", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"raio_luz": {"nome": "Raio de Luz", "tipo": "Luz", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
+	"aurora": {"nome": "Aurora", "tipo": "Luz", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"sol_nascente": {"nome": "Sol Nascente", "tipo": "Luz", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"toxina": {"nome": "Toxina", "tipo": "Veneno", "poder": 13, "fx": "green", "kind": "projetil", "cd": 0},
+	"nevoa_toxica": {"nome": "Névoa Tóxica", "tipo": "Veneno", "poder": 22, "fx": "green", "kind": "projetil", "cd": 2},
+	"praga": {"nome": "Praga Ancestral", "tipo": "Veneno", "poder": 32, "fx": "green", "kind": "projetil", "cd": 3, "supremo": true},
+	"grito": {"nome": "Grito Sônico", "tipo": "Som", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
+	"sinfonia": {"nome": "Sinfonia", "tipo": "Som", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"estrondo": {"nome": "Estrondo Final", "tipo": "Som", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"estilhaco": {"nome": "Estilhaço", "tipo": "Cristal", "poder": 13, "fx": "ice", "kind": "projetil", "cd": 0},
+	"prisma": {"nome": "Prisma", "tipo": "Cristal", "poder": 22, "fx": "ice", "kind": "projetil", "cd": 2},
+	"caleidoscopio": {"nome": "Caleidoscópio", "tipo": "Cristal", "poder": 32, "fx": "ice", "kind": "projetil", "cd": 3, "supremo": true},
 	# golpes de ELEMENTOS HÍBRIDOS (nascem da Fusão de Essência)
 	"h_vapor": {"nome": "Vapor Escaldante", "tipo": "Vapor", "poder": 20, "fx": "splash", "kind": "projetil", "cd": 0},
 	"h_plasma": {"nome": "Raio de Plasma", "tipo": "Plasma", "poder": 20, "fx": "explosion", "kind": "projetil", "cd": 0},
@@ -168,7 +192,8 @@ const MOVES := {
 const TYPE_COLORS := {"Normal": Color("e8e0d0"), "Fogo": Color("ff7a3d"), "Água": Color("4fa8ff"), "Planta": Color("5cc95c"),
 	"Voador": Color("e0a0c0"), "Gelo": Color("9ae0ff"), "Psíquico": Color("c080ff"), "Elétrico": Color("ffd84a"), "Inseto": Color("a0e070"),
 	"Vapor": Color("f4c0d0"), "Plasma": Color("ff5ad8"), "Tormenta": Color("7a8aff"), "Pântano": Color("8a9a4a"), "Nevasca": Color("d8f4ff"),
-	"Bioluz": Color("6affb8"), "Fogo-fátuo": Color("5ad8ff"), "Geleira": Color("6ac8e8"), "Astral": Color("b8a0ff")}
+	"Bioluz": Color("6affb8"), "Fogo-fátuo": Color("5ad8ff"), "Geleira": Color("6ac8e8"), "Astral": Color("b8a0ff"),
+	"Pedra": Color("b89a6a"), "Metal": Color("a8b8c8"), "Sombra": Color("6a4a9a"), "Luz": Color("fff0a0"), "Veneno": Color("b060d0"), "Som": Color("ff9ac8"), "Cristal": Color("8af0f0")}
 
 ## ELEMENTOS HÍBRIDOS: a Fusão de Essência entre dois tipos que combinam
 ## cria um elemento novo (Água + Fogo = Vapor). Cada um tem golpe próprio e
@@ -185,7 +210,8 @@ const HYBRIDS := {
 	"Astral": {"de": ["Psíquico", "Voador"], "golpe": "h_astral", "fortes": ["Psíquico", "Inseto", "Normal"], "desc": "céu estrelado"},
 }
 const TYPE_SLUG := {"Normal": "normal", "Fogo": "fogo", "Água": "agua", "Planta": "planta", "Voador": "voador", "Gelo": "gelo", "Psíquico": "psiquico", "Elétrico": "eletrico", "Inseto": "inseto",
-	"Vapor": "vapor", "Plasma": "plasma", "Tormenta": "tormenta", "Pântano": "pantano", "Nevasca": "nevasca", "Bioluz": "bioluz", "Fogo-fátuo": "fatuo", "Geleira": "geleira", "Astral": "astral"}
+	"Vapor": "vapor", "Plasma": "plasma", "Tormenta": "tormenta", "Pântano": "pantano", "Nevasca": "nevasca", "Bioluz": "bioluz", "Fogo-fátuo": "fatuo", "Geleira": "geleira", "Astral": "astral",
+	"Pedra": "pedra", "Metal": "metal", "Sombra": "sombra", "Luz": "luz", "Veneno": "veneno", "Som": "som", "Cristal": "cristal"}
 
 
 func hybrid_of(a: String, b: String) -> String:
@@ -203,8 +229,11 @@ func strong_vs(tp: String) -> Array:
 ## Golpe que a essência dá (híbrido ou o básico do tipo).
 func essence_move(ess: String) -> String:
 	return HYBRIDS[ess]["golpe"] if HYBRIDS.has(ess) else TYPE_BASIC[ess]
-const STRONG := {"Fogo": ["Planta", "Gelo", "Inseto"], "Água": ["Fogo"], "Planta": ["Água"], "Elétrico": ["Água", "Voador"],
-	"Gelo": ["Planta", "Voador"], "Voador": ["Planta", "Inseto"], "Inseto": ["Planta", "Psíquico"], "Psíquico": []}
+const STRONG := {"Fogo": ["Planta", "Gelo", "Inseto", "Metal"], "Água": ["Fogo", "Pedra"], "Planta": ["Água", "Pedra"], "Elétrico": ["Água", "Voador", "Metal"],
+	"Gelo": ["Planta", "Voador"], "Voador": ["Planta", "Inseto"], "Inseto": ["Planta", "Psíquico"], "Psíquico": ["Veneno"],
+	# novos elementos
+	"Pedra": ["Fogo", "Voador", "Gelo", "Inseto"], "Metal": ["Gelo", "Pedra", "Cristal"], "Sombra": ["Psíquico", "Som"],
+	"Luz": ["Sombra", "Veneno"], "Veneno": ["Planta", "Inseto"], "Som": ["Cristal", "Voador"], "Cristal": ["Sombra", "Elétrico"]}
 
 # --- MAPAS E ZONAS DO IDLE (estilo Taskbar Hero)
 ## Cada região é um mapa com 10 zonas. Os Nefastos não param de vir; cada
@@ -299,12 +328,16 @@ const ITEMS := {
 	"super_pocao": {"nome": "Super Poção", "cat": 0, "desc": "Fórmula estrelada e reforçada: recupera 60 de vida."},
 	"fruta": {"nome": "Fruta Doce", "cat": 0, "desc": "Brilha ao sol e é suculenta. Deixa o Digialma feliz e aumenta o vínculo."},
 	"doce": {"nome": "Doce Raro", "cat": 0, "desc": "Um doce brilhante e misterioso. Sobe 1 nível na hora."},
+	"orbe_alma": {"nome": "Orbe de Alma", "cat": 0, "desc": "Traz de volta um Digialma que virou alma-nuvem (caído), com metade da vida. É o ÚNICO jeito de reviver: descansar e curar não funcionam em almas. No idle: clique na nuvenzinha. Cai de Nefastos (raro) e dos Santuários."},
+	"cristal_despertar": {"nome": "Cristal do Despertar", "cat": 1, "desc": "Pedra dourada que pulsa como um coração. Faz uma forma FINAL no Nv 55 DESPERTAR (+25% em tudo, aura dourada), mas só depois de purificar os 3 mundos. Vem do Santuário do Monte Brasa e, raramente, dos mapas já purificados."},
 	"chip_elo": {"nome": "Chip do Elo", "cat": 1, "desc": "Recarrega 3 cargas do seu Elo para escanear Digialmas."},
 	"ovo": {"nome": "Ovo Misterioso", "cat": 1, "desc": "Está quentinho... Choca conforme você dá passos."},
 	"mapa": {"nome": "Mapa da Região", "cat": 2, "desc": "Mostra as rotas, santuários e áreas secretas da região."},
 	"bits": {"nome": "Moeda Bit", "cat": 2, "desc": "Moeda antiga com um coração digital. Dizem que guarda memórias de outros Elos."},
 }
 const ITEM_TABS := ["Itens", "Elo", "Especiais"]
+## Ícone (assets/ui/idle_*.png) de cada item na Mochila.
+const ITEM_ICON := {"pocao": "cura", "super_pocao": "cura", "orbe_alma": "orbe", "fruta": "coracao", "doce": "nivel", "chip_elo": "laco", "cristal_despertar": "gema", "ovo": "alma", "mapa": "mapa", "bits": "bits"}
 
 # --- Raridade (vale para Digialmas e para Amuletos)
 const RARITY := [
@@ -338,7 +371,7 @@ var player_name := "Léo"
 var bits := 1250
 var badges := 0
 var play_time := 0.0
-var inventory := {"pocao": 5, "super_pocao": 2, "fruta": 8, "doce": 1, "chip_elo": 3, "ovo": 1, "mapa": 1, "bits": 12}
+var inventory := {"pocao": 5, "super_pocao": 2, "orbe_alma": 3, "fruta": 8, "doce": 1, "chip_elo": 3, "ovo": 1, "mapa": 1, "bits": 12}
 var team: Array = []
 var reserve: Array = []
 var region_unlocked := 1
@@ -391,9 +424,9 @@ void fragment() {
 
 
 # ---------------------------------------------------------------- SAVE
-const VERSION := "0.3"
+const VERSION := "0.4"
 const SAVE_PATH := "user://digialma_save.dat"
-const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp"]
+const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp", "dex_caught"]
 var last_seen := 0  # quando o jogo foi salvo pela última vez (para o progresso offline)
 var _save_t := 0.0
 var _testing := false
@@ -462,6 +495,8 @@ func load_game() -> bool:
 			else:
 				set(k, d[k])
 	last_seen = int(d.get("quando", 0))
+	for m in team + reserve:
+		dex_register(m)
 	return true
 
 
@@ -484,6 +519,7 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot"):
 			_testing = true
+	_load_roster()
 	load_game()
 	font = load("res://assets/fonts/PixeloidSans.ttf")
 	font_title = load("res://assets/fonts/dogicapixelbold.otf")
@@ -556,6 +592,14 @@ func _ready() -> void:
 			_debug_v27()
 		elif a == "--shot=v28":
 			_debug_v28()
+		elif a == "--shot=v29":
+			_debug_v29()
+		elif a == "--shot=v30":
+			_debug_v30()
+		elif a == "--shot=v31":
+			_debug_v31()
+		elif a == "--shot=chk":
+			_debug_chk()
 		elif a == "--shot=v20":
 			_debug_v20()
 		elif a == "--shot=v19":
@@ -646,6 +690,9 @@ func monster_frames(id: int) -> SpriteFrames:
 		var path: String
 		if extra.has(anim):
 			path = extra[anim]
+		elif ROSTER_ART.has(id):
+			var want := "res://assets/monsters/d%d_%s.png" % [id, anim]
+			path = want if ResourceLoader.exists(want) else "res://assets/monsters/d%d_idle.png" % id
 		else:
 			var base_anim: String = "idle" if anim == "walk" else anim
 			path = (CUSTOM_SPRITES[id] % base_anim) if CUSTOM_SPRITES.has(id) else MP + "sprites/sprite%d_%s.png" % [id, base_anim]
@@ -688,6 +735,8 @@ func char_frames(name: String) -> SpriteFrames:
 
 
 func menu_icon(id: int) -> Texture2D:
+	if ROSTER_ART.has(id):
+		return tex("res://assets/monsters/menud%d.png" % id)
 	if CUSTOM_SPRITES.has(id):
 		return tex("res://assets/monsters/menusprite%d.png" % id)
 	return tex(MP + "menu sprites/menusprite%d.png" % id)
@@ -774,14 +823,14 @@ func stat(m: Dictionary, k: String) -> float:
 
 
 # ---------------------------------------------------------------- FUSÕES
-## RESSONÂNCIA: funde um Digialma igual (mesma espécie) no outro: +5% de
-## atributos por nível (até 5). Se o doador for de raridade maior, ela passa.
+## RESSONÂNCIA: "queima" um Digialma da mesma família no outro: +5% de
+## atributos por nível (até 5). A raridade e o nível NÃO mudam.
 ## ESSÊNCIA: funde uma EVOLUÇÃO de outro tipo: o alvo ganha um 2º elemento
 ## (golpe daquele tipo) e enxerga os pontos fracos que ele explora.
 const RES_MAX := 5
 const RES_COST := 1
 const ESS_COST := 2
-const TYPE_BASIC := {"Normal": "arranhao", "Fogo": "brasa", "Água": "jato", "Planta": "folha", "Voador": "rajada", "Gelo": "geada", "Psíquico": "mente", "Elétrico": "choque", "Inseto": "picada"}
+const TYPE_BASIC := {"Pedra": "pedrada", "Metal": "lamina", "Sombra": "sombra", "Luz": "raio_luz", "Veneno": "toxina", "Som": "grito", "Cristal": "estilhaco", "Normal": "arranhao", "Fogo": "brasa", "Água": "jato", "Planta": "folha", "Voador": "rajada", "Gelo": "geada", "Psíquico": "mente", "Elétrico": "choque", "Inseto": "picada"}
 var cristais := 0
 
 # ---------------------------------------------------------------- NÍVEL DO ELO
@@ -877,9 +926,6 @@ func _consume(b: Dictionary) -> void:
 func resonate(a: Dictionary, b: Dictionary) -> void:
 	cristais -= RES_COST
 	a["res"] = int(a.get("res", 0)) + 1
-	if int(b.get("rar", 0)) > int(a.get("rar", 0)):
-		a["rar"] = b["rar"]
-	a["lv"] = maxi(a["lv"], b["lv"] - 2)
 	_consume(b)
 	a["hp"] = max_hp(a)
 
@@ -923,7 +969,86 @@ func calc_damage(atk: Dictionary, def: Dictionary, mv: Dictionary, perfect: bool
 
 
 func rar_mult(m: Dictionary) -> float:
-	return RARITY[int(m.get("rar", 0))]["mult"]
+	return RARITY[int(m.get("rar", 0))]["mult"] * (AWAKEN_MULT if m.get("desperto", false) else 1.0)
+
+
+# ---------------------------------------------------------------- ELENCO NOVO
+## data/roster_plano.json tem as 100+ espécies planejadas. Quem já tem arte
+## ("arte": true e o sprite em assets/monsters/d<id>_idle.png) entra no jogo.
+var ROSTER_ART := {}
+var ROSTER := []
+
+
+func _load_roster() -> void:
+	var f := FileAccess.open("res://data/roster_plano.json", FileAccess.READ)
+	if f == null:
+		return
+	var d = JSON.parse_string(f.get_as_text())
+	if typeof(d) != TYPE_DICTIONARY:
+		return
+	ROSTER = d.get("especies", [])
+	var by_id := {}
+	for e in ROSTER:
+		by_id[int(e["id"])] = e
+	for e in ROSTER:
+		var id := int(e["id"])
+		if not e.get("arte", false) or not ResourceLoader.exists("res://assets/monsters/d%d_idle.png" % id):
+			continue
+		ROSTER_ART[id] = true
+		var st := int(e.get("estagio", 1))
+		var k: float = [1.0, 1.25, 1.5][clampi(st - 1, 0, 2)] * (1.15 if e.get("lenda", false) else 1.0)
+		var tipo: String = e["tipo"]
+		var moves: Array = ["investida", TYPE_BASIC.get(tipo, "arranhao")]
+		if st >= 2 or e.get("lenda", false):
+			moves.append(TYPE_SPECIAL.get(tipo, "impacto"))
+		var evo: Array = []
+		for o in ROSTER:
+			if o.get("evo_de") != null and int(o["evo_de"]) == id:
+				evo = [int(o["id"]), int(o["evo_nv"])]
+		MONSTERS[id] = {"nome": e["nome"], "tipo": tipo, "cor": TYPE_COLORS.get(tipo, Color.WHITE), "hp": k, "atk": k, "def": k,
+			"evo": evo, "moves": moves, "jeito": e.get("conceito", ""), "lenda": e.get("lenda", false)}
+		FOOT[id] = int(e.get("pe", 80))
+		if e.get("papel", "") == "suporte":
+			SUPPORT[id] = 0.08
+	# evoluções só valem se a forma seguinte também tem arte
+	for id in ROSTER_ART:
+		var ev: Array = MONSTERS[id]["evo"]
+		if ev.size() > 0 and not ROSTER_ART.has(ev[0]):
+			MONSTERS[id]["evo"] = []
+
+
+# ---------------------------------------------------------------- DESPERTAR
+## A 4ª forma: só depois de purificar os 3 mundos. A forma FINAL de uma linha,
+## no Nv 55, com um Cristal do Despertar, desperta: +25% em tudo, aura dourada
+## e nome novo. (A 5ª forma, Ascensão, fica para o fim do jogo.)
+const AWAKEN_LV := 55
+const AWAKEN_MULT := 1.25
+
+
+func can_awaken(m: Dictionary) -> bool:
+	return all_purified and not m.get("desperto", false) and MONSTERS[m["id"]]["evo"].is_empty() \
+		and int(m["lv"]) >= AWAKEN_LV and int(inventory.get("cristal_despertar", 0)) > 0
+
+
+func awaken(m: Dictionary) -> void:
+	inventory["cristal_despertar"] = int(inventory.get("cristal_despertar", 0)) - 1
+	if inventory["cristal_despertar"] <= 0:
+		inventory.erase("cristal_despertar")
+	m["desperto"] = true
+	m["hp"] = max_hp(m)
+	m["pa"] = int(m.get("pa", 0)) + 5
+	dex_register(m)
+
+
+## Ordem da Digidex: linha por linha.
+func dex_order() -> Array:
+	var order: Array = [7, 8, 9, 17, 18, 1, 2, 3, 12, 13, 14, 15, 16, 4, 5, 6, 10, 11]
+	var rest: Array = []
+	for k in MONSTERS:
+		if not order.has(k):
+			rest.append(k)
+	rest.sort()
+	return order + rest
 
 
 func rar_color(r: int) -> Color:
@@ -1046,6 +1171,20 @@ func xp_need(m: Dictionary) -> int:
 	return 20 + int(m["lv"]) * int(m["lv"]) * 4
 
 
+## SUPORTES: Digialmas que cuidam do time. Valor = fração da vida curada.
+## No idle curam sozinhos durante as lutas; nas batalhas ganham o golpe Luz Vital.
+var SUPPORT := {10: 0.10, 5: 0.08, 16: 0.09, 12: 0.06, 13: 0.07, 14: 0.08}
+
+
+func is_support(m: Dictionary) -> bool:
+	return SUPPORT.has(int(m["id"]))
+
+
+func heal_amount(healer: Dictionary, target: Dictionary) -> int:
+	var k: float = SUPPORT.get(int(healer["id"]), 0.0) * (1.0 + int(healer["lv"]) * 0.01) * rar_mult(healer)
+	return maxi(1, int(max_hp(target) * k))
+
+
 func moves_of(m: Dictionary) -> Array:
 	var base: Array = MONSTERS[m["id"]]["moves"]
 	if not m.has("tree"):
@@ -1066,6 +1205,8 @@ func moves_of(m: Dictionary) -> Array:
 			res.insert(mini(res.size(), 2), em)
 	if m["tree"].has("f5"):
 		res.append(TYPE_SUPREME[tipo])
+	if is_support(m):
+		res.append("luz_vital")
 	return res
 
 
@@ -1090,9 +1231,72 @@ func make_partner(m: Dictionary) -> Dictionary:
 
 
 ## Coloca um Digialma purificado na equipe (se houver vaga) ou na reserva.
+# ---------------------------------------------------------------- DIGIDEX
+## Por espécie: as raridades que você já teve. Ver = encontrou; ter = capturou.
+var dex_caught := {}
+
+
+func dex_register(m: Dictionary) -> void:
+	var id := int(m["id"])
+	seen[id] = true
+	var arr: Array = dex_caught.get(id, [])
+	var r := int(m.get("rar", 0))
+	if not arr.has(r):
+		arr.append(r)
+		arr.sort()
+	dex_caught[id] = arr
+
+
+## Raridades em que a espécie pode aparecer. Formas finais não nascem Comuns;
+## lendas só Épicas ou Lendárias.
+func rar_options(id: int) -> Array:
+	var d: Dictionary = MONSTERS[id]
+	if d.get("lenda", false):
+		return [3, 4]
+	var is_final: bool = d["evo"].is_empty() and _has_pre(id)
+	return [1, 2, 3, 4] if is_final else [0, 1, 2, 3, 4]
+
+
+func _has_pre(id: int) -> bool:
+	for k in MONSTERS:
+		var e: Array = MONSTERS[k]["evo"]
+		if e.size() > 0 and int(e[0]) == id:
+			return true
+		if int(MONSTERS[k].get("evo_guarda", -1)) == id:
+			return true
+	return false
+
+
+## Linha evolutiva completa (da forma base até as finais), em ordem.
+func evo_line(id: int) -> Array:
+	var root := id
+	var guard := 0
+	while guard < 8:
+		guard += 1
+		var found := -1
+		for k in MONSTERS:
+			var e: Array = MONSTERS[k]["evo"]
+			if (e.size() > 0 and int(e[0]) == root) or int(MONSTERS[k].get("evo_guarda", -1)) == root:
+				found = k
+				break
+		if found < 0:
+			break
+		root = found
+	var line: Array = [root]
+	var i := 0
+	while i < line.size():
+		var d: Dictionary = MONSTERS[line[i]]
+		if d["evo"].size() > 0 and not line.has(int(d["evo"][0])):
+			line.append(int(d["evo"][0]))
+		if d.has("evo_guarda") and not line.has(int(d["evo_guarda"])):
+			line.append(int(d["evo_guarda"]))
+		i += 1
+	return line
+
+
 func add_partner(m: Dictionary) -> String:
 	make_partner(m)
-	seen[m["id"]] = true
+	dex_register(m)
 	if team.size() < team_cap():
 		team.append(m)
 		return "equipe"
@@ -1129,7 +1333,7 @@ func effectiveness(move_type: String, def_type: String) -> float:
 
 
 func mon_name(m: Dictionary) -> String:
-	return MONSTERS[m["id"]]["nome"]
+	return MONSTERS[m["id"]]["nome"] + (" Desperto" if m.get("desperto", false) else "")
 
 
 func first_alive() -> int:
@@ -1139,15 +1343,34 @@ func first_alive() -> int:
 	return -1
 
 
-func heal_team(frac := 1.0) -> void:
+## Cura o time. Quem caiu (alma-nuvem) só volta com revive=true ou Orbe de Alma.
+func heal_team(frac := 1.0, revive := false) -> void:
 	for m in team:
-		m["hp"] = mini(max_hp(m), m["hp"] + int(max_hp(m) * frac))
+		if int(m["hp"]) <= 0 and not revive:
+			continue
+		m["hp"] = mini(max_hp(m), maxi(0, int(m["hp"])) + int(max_hp(m) * frac))
 		if m["hp"] <= 0 and frac > 0:
 			m["hp"] = 1
 
 
+## Usa um Orbe de Alma no primeiro Digialma caído. Retorna o índice ou -1.
+func use_soul_orb() -> int:
+	if int(inventory.get("orbe_alma", 0)) <= 0:
+		return -1
+	for i in team.size():
+		if int(team[i]["hp"]) <= 0:
+			inventory["orbe_alma"] = int(inventory["orbe_alma"]) - 1
+			if inventory["orbe_alma"] <= 0:
+				inventory.erase("orbe_alma")
+			team[i]["hp"] = maxi(1, int(max_hp(team[i]) * 0.5))
+			return i
+	return -1
+
+
 func new_game(starter: int) -> void:
 	team = [make_partner(new_monster(starter, 5, 1))]
+	dex_caught = {}
+	dex_register(team[0])
 	reserve = []
 	elo_up = {}
 	gear = []
@@ -1167,7 +1390,7 @@ func new_game(starter: int) -> void:
 	badges = 0
 	elo_charges = 6
 	intro_done = true
-	inventory = {"pocao": 5, "super_pocao": 1, "fruta": 3, "chip_elo": 2, "ovo": 1, "mapa": 1}
+	inventory = {"pocao": 5, "super_pocao": 1, "orbe_alma": 3, "fruta": 3, "chip_elo": 2, "ovo": 1, "mapa": 1}
 	bits = 300
 	play_time = 0.0
 
@@ -2090,3 +2313,116 @@ func _debug_v28() -> void:
 	for i in 60:
 		await get_tree().create_timer(0.25).timeout
 		get_viewport().get_texture().get_image().save_png("/tmp/v28/%02d.png" % i)
+
+
+func _debug_v29() -> void:
+	DirAccess.make_dir_recursive_absolute("/tmp/v29")
+	get_tree().create_timer(60.0, true, false, true).timeout.connect(get_tree().quit)
+	await get_tree().create_timer(0.5).timeout
+	new_game(7)
+	tutorial["idle"] = true
+	team[0] = make_partner(new_monster(9, 30, 2))
+	add_partner(new_monster(10, 26, 1))
+	elo_up["vaga"] = 1
+	add_partner(new_monster(13, 24, 3))
+	team[2]["hp"] = 0
+	dex_register(team[0])
+	seen[12] = true
+	seen[6] = true
+	zone[0] = 4
+	zone_max[0] = 6
+	get_tree().change_scene_to_file("res://scenes/idle.tscn")
+	await get_tree().create_timer(3.0).timeout
+	var idle = get_tree().current_scene
+	get_viewport().get_texture().get_image().save_png("/tmp/v29/strip_alma.png")
+	var mode := OS.get_environment("PAINEL")
+	for sc in ["digidex", "mapa_idle", "arvores"]:
+		if mode != "" and sc != mode:
+			continue
+		if sc == "arvores":
+			return_to = "tab:" + OS.get_environment("ABA")
+		idle._open_panel("res://scenes/%s.tscn" % sc)
+		await get_tree().create_timer(1.5).timeout
+		if sc == "arvores" and OS.get_environment("AJUDA") == "1":
+			var a = idle.panel_win.get_child(0)
+			a._fusion_help()
+			await get_tree().create_timer(0.5).timeout
+		idle.panel_win.get_texture().get_image().save_png("/tmp/v29/%s%s.png" % [sc, OS.get_environment("ABA")])
+	await get_tree().create_timer(4.0).timeout
+	get_viewport().get_texture().get_image().save_png("/tmp/v29/strip_late.png")
+	get_tree().quit()
+
+
+func _debug_v30() -> void:
+	DirAccess.make_dir_recursive_absolute("/tmp/v30")
+	get_tree().create_timer(200.0, true, false, true).timeout.connect(get_tree().quit)
+	await get_tree().create_timer(0.5).timeout
+	new_game(7)
+	tutorial["idle"] = true
+	team[0]["lv"] = 8
+	add_partner(new_monster(10, 8, 0))
+	team[1]["lv"] = 8
+	inventory["orbe_alma"] = 0
+	zone[0] = 6
+	zone_max[0] = 6
+	team[0]["hp"] = max_hp(team[0])
+	team[1]["hp"] = max_hp(team[1])
+	duel_queue.append(new_monster(6, 9, 3))
+	get_tree().change_scene_to_file("res://scenes/idle.tscn")
+	Engine.time_scale = 6.0
+	var souls_seen := false
+	for i in 120:
+		await get_tree().create_timer(1.0 * 6.0).timeout
+		var hp := []
+		for m in team:
+			hp.append(m["hp"])
+		var idle = get_tree().current_scene
+		var soul_flags := []
+		if idle and "pets" in idle:
+			for p in idle.pets:
+				soul_flags.append(p.soul)
+				if p.soul:
+					souls_seen = true
+		if i % 4 == 0:
+			print("t=", i, " zona=", zone.get(0, 1), " hp=", hp, " almas=", soul_flags)
+		if souls_seen and i % 4 == 0:
+			get_viewport().get_texture().get_image().save_png("/tmp/v30/%03d.png" % i)
+		if i == 30 and idle:
+			idle._open_duel()
+	get_tree().quit()
+
+
+func _debug_chk() -> void:
+	await get_tree().process_frame
+	for f in DirAccess.open("res://scripts").get_files():
+		if f.ends_with(".gd"):
+			var sc = load("res://scripts/" + f)
+			print("CHK ", f, " ", "OK" if sc != null and sc.can_instantiate() else "FALHOU")
+	get_tree().quit()
+
+
+func _debug_v31() -> void:
+	DirAccess.make_dir_recursive_absolute("/tmp/v31")
+	get_tree().create_timer(60.0, true, false, true).timeout.connect(get_tree().quit)
+	await get_tree().create_timer(0.5).timeout
+	new_game(7)
+	tutorial["idle"] = true
+	for i in 3:
+		tutorial["mapa%d" % i] = true
+	team[0] = make_partner(new_monster(9, 54, 3))
+	team[0]["xp"] = xp_need(team[0]) - 1
+	badges = 3
+	all_purified = true
+	region = 2
+	inventory["cristal_despertar"] = 1
+	get_tree().change_scene_to_file("res://scenes/idle.tscn")
+	for i in 40:
+		await get_tree().create_timer(0.5).timeout
+		var idle = get_tree().current_scene
+		if idle and "panel_win" in idle and is_instance_valid(idle.panel_win):
+			idle.panel_win.get_texture().get_image().save_png("/tmp/v31/p%02d.png" % i)
+		if i == 3 and idle:
+			idle._give_xp(5)
+	print("desperto=", team[0].get("desperto", false), " nome=", mon_name(team[0]))
+	get_viewport().get_texture().get_image().save_png("/tmp/v31/strip.png")
+	get_tree().quit()

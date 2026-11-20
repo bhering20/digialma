@@ -239,6 +239,25 @@ func _select(key: String, b: Button) -> void:
 func _use() -> void:
 	if selected == "" or Game.ITEMS[selected]["cat"] == 2:
 		return
+	if selected == "orbe_alma":
+		var ri := Game.use_soul_orb()
+		if ri < 0:
+			_show_toast("Ninguém virou alma: o Orbe fica guardado.")
+			return
+		_show_toast("%s voltou da forma de alma!" % Game.mon_name(Game.team[ri]))
+		_set_tab(tab)
+		return
+	if selected in ["pocao", "super_pocao"]:
+		var amt := 20 if selected == "pocao" else 60
+		var target := {}
+		for m in Game.team:
+			if int(m["hp"]) > 0 and int(m["hp"]) < Game.max_hp(m):
+				target = m
+				break
+		if target.is_empty():
+			_show_toast("Ninguém precisa de cura (almas só voltam com Orbe).")
+			return
+		target["hp"] = mini(Game.max_hp(target), int(target["hp"]) + amt)
 	Game.inventory[selected] -= 1
 	_show_toast("Você usou %s!" % Game.ITEMS[selected]["nome"])
 	var keep := selected

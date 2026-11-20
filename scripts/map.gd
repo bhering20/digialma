@@ -181,6 +181,15 @@ func _hud() -> void:
 	tree_btn.add_theme_color_override("font_color", Color("8af0c0"))
 	tree_btn.pressed.connect(func(): Game.change_scene("res://scenes/arvores.tscn"))
 	add_child(tree_btn)
+	var dex_btn := Button.new()
+	dex_btn.text = "DIGIDEX"
+	dex_btn.tooltip_text = "Todos os Digialmas que você já encontrou e suas raridades."
+	dex_btn.position = Vector2(540, 40)
+	dex_btn.custom_minimum_size = Vector2(92, 22)
+	dex_btn.focus_mode = Control.FOCUS_NONE
+	dex_btn.add_theme_color_override("font_color", Color("9ab8ff"))
+	dex_btn.pressed.connect(func(): Game.change_scene("res://scenes/digidex.tscn"))
+	add_child(dex_btn)
 	var hint := Label.new()
 	hint.text = "Escolha uma região. Cada rota tem 3 Nefastos e um santuário corrompido."
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

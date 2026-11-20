@@ -4,12 +4,13 @@ extends Control
 const UI := "res://assets/ui/idle_%s.png"
 const ROWS := [
 	["purif", "Seu grupo explora e purifica Nefastos sozinho. Deixe a faixa rodando enquanto usa o PC. Mesmo fechado, ele continua (até 8h)."],
-	["santuario", "Cada mapa tem 10 zonas, cada vez mais fortes (1-1, 1-2...). Se o grupo todo cair, volta uma zona. Na zona 10, o Santuário: vença o líder para purificar o mapa."],
-	["auto", "Use < > para voltar a zonas liberadas e farmar. O botão de setas circulares liga/desliga o avanço automático."],
-	["lutar", "Espadas pulsando = um Digialma raro quer lutar. Clique nelas para o duelo começar ali mesmo, na faixa."],
-	["tipo_fogo", "No duelo, escolha o golpe e clique (ou Espaço) quando o anel fechar no inimigo. Anel vermelho no seu Digialma: clique na hora para desviar."],
+	["santuario", "Cada mapa tem 10 zonas, cada vez mais fortes (1-1, 1-2...). Se o grupo todo cair, volta uma zona. Na zona 10, o Santuário: vença o guardião para purificar o mapa."],
+	["mapa", "Mapa do Mundo: veja as ilhas, o que já foi purificado e clique numa zona liberada para viajar. < > e o botão de setas circulares também mudam de zona."],
+	["alma", "Digialma caído vira ALMA-NUVEM e não luta. Só volta com um Orbe de Alma: clique na nuvenzinha. Suportes (ícone +) curam o time durante as lutas."],
+	["lutar", "Espadas pulsando = um Digialma raro quer lutar. No duelo, clique quando o anel fechar no inimigo; anel vermelho em você = clique para desviar."],
 	["laco", "Inimigo fraco? Use o Selo de Alma para capturar. Só 2 tentativas, e o Elo precisa ter nível para a raridade dele."],
-	["bolsa", "Bolsa: amuletos, Árvore de Alma, fusões (Ressonância e Essência) e equipe."],
+	["dex", "Digidex: todos os Digialmas que você já viu. Capturou um? Veja em quais raridades ele existe e quais você já teve."],
+	["bolsa", "Bolsa: amuletos, Mochila (para que serve cada item), Árvore de Alma, Fusões e equipe. Fusão sobe atributos, mas NUNCA muda a raridade."],
 ]
 
 
@@ -31,7 +32,7 @@ func _ready() -> void:
 	v.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
 	v.position = Vector2(470, 18)
 	add_child(v)
-	var y := 40.0
+	var y := 38.0
 	for r in ROWS:
 		var ic := TextureRect.new()
 		ic.texture = Game.tex(UI % r[0])
@@ -46,7 +47,7 @@ func _ready() -> void:
 		l.size = Vector2(556, 40)
 		l.add_theme_font_size_override("font_size", 9)
 		add_child(l)
-		y += 36.0
+		y += 29.0
 	var tip := Label.new()
 	tip.text = "Arraste a faixa para onde quiser. Passe o mouse nela para ver os botões. O progresso salva sozinho."
 	tip.add_theme_font_size_override("font_size", 8)

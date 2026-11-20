@@ -367,6 +367,14 @@ func _loop() -> String:
 			"switch":
 				await _switch_to(a["index"])
 			"move":
+				if Game.MOVES[a["move"]].has("cura"):
+					await _heal_move(a["move"])
+					var ko3 := await _enemy_turn()
+					if enemies[e_i]["hp"] <= 0:
+						var r4 := await _enemy_fainted()
+						if r4 != "":
+							return r4
+					continue
 				var mult := 1.0
 				var perfect := false
 				if Game.MOVES[a["move"]]["cd"] > 0:
@@ -479,7 +487,7 @@ func _show_moves() -> void:
 func _show_items() -> void:
 	_clear_grid()
 	var any := false
-	for k in ["pocao", "super_pocao", "fruta", "chip_elo"]:
+	for k in ["pocao", "super_pocao", "orbe_alma", "fruta", "chip_elo"]:
 		if Game.inventory.get(k, 0) > 0:
 			any = true
 			_btn("%s x%d" % [Game.ITEMS[k]["nome"], Game.inventory[k]], func(): choice_made.emit({"type": "item", "item": k}))
@@ -926,6 +934,15 @@ func _use_item(k: String) -> void:
 			p["vinculo"] = mini(100, p["vinculo"] + 10)
 		"chip_elo":
 			Game.elo_charges += 3
+		"orbe_alma":
+			Game.inventory[k] = int(Game.inventory.get(k, 0)) + 1  # use_soul_orb desconta
+			var ri := Game.use_soul_orb()
+			if ri < 0:
+				await _say("Ninguém virou alma. O Orbe foi guardado.", 0.6)
+				return
+			_refresh_boxes()
+			await _say("%s voltou da forma de alma!" % Game.mon_name(Game.team[ri]), 0.7)
+			return
 	_burst(P_FEET + Vector2(0, -60), Color("7affc1"), 24, 80.0, true)
 	_refresh_boxes()
 	await _say("Você usou %s!" % Game.ITEMS[k]["nome"], 0.6)
@@ -1536,6 +1553,20 @@ func _help() -> void:
 
 ## Combo de ataque: uma sequência de anéis, cada vez mais rápidos.
 ## Cada acerto é um golpe; errar encerra o combo. Acertar todos = CRÍTICO no último.
+## Golpe de suporte: Luz Vital cura o Digialma ativo.
+func _heal_move(mk: String) -> void:
+	var p: Dictionary = Game.team[p_i]
+	energy -= Game.move_cost(mk)
+	_clear_grid()
+	msg.text = "%s usou %s!" % [Game.mon_name(p), Game.MOVES[mk]["nome"]]
+	var amt := maxi(int(Game.max_hp(p) * Game.MOVES[mk]["cura"]), Game.heal_amount(p, p) * 3)
+	p["hp"] = mini(Game.max_hp(p), int(p["hp"]) + amt)
+	_burst(P_FEET + Vector2(0, -60), Color("6fe08a"), 30, 90.0, true)
+	_float_text(P_FEET + Vector2(0, -120), "+%d" % amt, Color("6fe08a"))
+	_refresh_boxes()
+	await get_tree().create_timer(0.8).timeout
+
+
 func _attack_combo(mk: String) -> bool:
 	var p: Dictionary = Game.team[p_i]
 	var n := 1
