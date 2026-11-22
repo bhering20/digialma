@@ -30,15 +30,15 @@ func _ready() -> void:
 	title.position = Vector2(16, 10)
 	add_child(title)
 	var th := HBoxContainer.new()
-	th.position = Vector2(92, 10)
-	th.add_theme_constant_override("separation", 4)
+	th.position = Vector2(84, 10)
+	th.add_theme_constant_override("separation", 2)
 	add_child(th)
 	if Game.return_to.begins_with("tab:"):
 		tab = Game.return_to.substr(4)
-	for k in [["itens", "AMULETOS"], ["mochila", "MOCHILA"], ["alma", "ALMA"], ["fusao", "FUSÃO"], ["elo", "ELO"], ["equipe", "EQUIPE"]]:
+	for k in [["itens", "AMULETOS"], ["mochila", "MOCHILA"], ["alma", "ALMA"], ["fusao", "FUSÃO"], ["elo", "ELO"], ["insignias", "INSÍGNIAS"], ["equipe", "EQUIPE"]]:
 		var b := Button.new()
 		b.text = k[1]
-		b.custom_minimum_size = Vector2(56, 22)
+		b.custom_minimum_size = Vector2(48, 22)
 		b.add_theme_font_size_override("font_size", 8)
 		var key: String = k[0]
 		b.pressed.connect(func():
@@ -48,7 +48,7 @@ func _ready() -> void:
 		th.add_child(b)
 		tabs[key] = b
 	bits_l = Label.new()
-	bits_l.position = Vector2(470, 8)
+	bits_l.position = Vector2(486, 8)
 	bits_l.add_theme_color_override("font_color", Color("ffd84a"))
 	add_child(bits_l)
 	var back := Button.new()
@@ -100,6 +100,8 @@ func _build() -> void:
 			_build_fusao()
 		"elo":
 			_build_elo()
+		"insignias":
+			_build_insignias()
 		"equipe":
 			_build_equipe()
 
@@ -961,6 +963,113 @@ func _build_elo() -> void:
 				info.text = "Elo aprimorado: %s!" % u["nome"])
 		v.add_child(b)
 	info.text = "Bits vêm das purificações (o modo idle é a melhor fonte). Melhorias do Elo valem para todo o time."
+
+
+# ---------------------------------------------------------------- INSÍGNIAS
+func _build_insignias() -> void:
+	Game.badge_autoequip()
+	var slots := Game.badge_slots()
+	var hd := Label.new()
+	Game.heading(hd, "INSÍGNIAS  ·  ESPAÇOS NO ELO  %d/%d" % [Game.badge_eq.size(), slots], 12)
+	hd.add_theme_color_override("font_color", Color("ffd84a"))
+	hd.position = Vector2(20, 0)
+	body.add_child(hd)
+	var nx := ""
+	for need in Game.BADGE_SLOT_ELO:
+		if Game.elo_lv < need:
+			nx = "Próximo espaço no Elo Nv %d" % need
+			break
+	var sub := Label.new()
+	sub.text = nx if nx != "" else "Todos os espaços abertos"
+	sub.add_theme_font_size_override("font_size", 8)
+	sub.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
+	sub.position = Vector2(420, 4)
+	body.add_child(sub)
+	var g := GridContainer.new()
+	g.columns = 3
+	g.position = Vector2(10, 24)
+	g.add_theme_constant_override("h_separation", 4)
+	g.add_theme_constant_override("v_separation", 6)
+	body.add_child(g)
+	var owned := Game.badge_owned()
+	for r in Game.REGIONS.size():
+		var ld: Dictionary = Game.REGIONS[r]["lider"]
+		var k: String = ld["badge"]
+		var fx: Dictionary = Game.BADGE_FX.get(k, {})
+		var has := owned.has(k)
+		var lvl := Game.badge_level(k)
+		var on: bool = Game.badge_eq.has(k)
+		var p := PanelContainer.new()
+		p.custom_minimum_size = Vector2(202, 124)
+		if on:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color(0.25, 0.2, 0.05, 0.85)
+			sb.border_color = Color("ffd84a")
+			sb.set_border_width_all(2)
+			sb.content_margin_left = 12
+			sb.content_margin_right = 12
+			sb.content_margin_top = 10
+			sb.content_margin_bottom = 10
+			p.add_theme_stylebox_override("panel", sb)
+		g.add_child(p)
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 4)
+		h.clip_contents = true
+		p.add_child(h)
+		var ic := TextureRect.new()
+		ic.texture = Game.tex("res://assets/badges/%s.png" % k)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(32, 32)
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		if not has:
+			ic.modulate = Color(0, 0, 0, 0.6)
+		h.add_child(ic)
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 2)
+		v.custom_minimum_size = Vector2(138, 0)
+		h.add_child(v)
+		var t := Label.new()
+		t.add_theme_font_size_override("font_size", 8)
+		t.text = ("%s  %s" % [ld["insignia"], Game.ROMAN[lvl]]) if has else "???"
+		t.add_theme_color_override("font_color", Color("ffd84a") if has else Color(1, 1, 1, 0.5))
+		v.add_child(t)
+		var d := Label.new()
+		d.add_theme_font_size_override("font_size", 8)
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		d.custom_minimum_size = Vector2(138, 0)
+		if has:
+			var txt: String = fx["efeito"] % fx["val"][lvl - 1]
+			txt += "\n" + ("Próximo (%s): %d%%" % [Game.ROMAN[lvl + 1], fx["val"][lvl]] if lvl < 3 else "Nível máximo")
+			if lvl < 3:
+				txt += "\nRevanche: zona 10 de " + Game.REGIONS[r]["nome"]
+			d.text = txt
+		else:
+			d.text = "Vença %s em %s." % [ld["nome"], Game.REGIONS[r]["nome"]] if r <= Game.badges else "Guardião ainda desconhecido."
+		v.add_child(d)
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(110, 16)
+		b.add_theme_font_size_override("font_size", 8)
+		if not has:
+			b.text = "TRANCADA"
+			b.disabled = true
+		elif on:
+			b.text = "TIRAR"
+			b.pressed.connect(func():
+				Game.badge_eq.erase(k)
+				_build()
+				info.text = "%s guardada." % ld["insignia"])
+		else:
+			b.text = "EQUIPAR"
+			b.disabled = Game.badge_eq.size() >= slots
+			if b.disabled:
+				b.tooltip_text = "Tire uma insígnia primeiro, ou suba o Elo para abrir espaço."
+			b.pressed.connect(func():
+				Game.badge_eq.append(k)
+				_build()
+				info.text = "%s equipada!" % ld["insignia"])
+		v.add_child(b)
+	info.text = "Insígnias equipadas no Elo dão bônus. Volte à zona 10 de um mapa purificado: o guardião pede REVANCHE, e vencer sobe a insígnia até o III."
 
 
 # ---------------------------------------------------------------- EQUIPE

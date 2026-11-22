@@ -30,6 +30,7 @@ var stats_l: Label
 var prog: ProgressBar
 var call_btn: Button
 var sanct_ready := false
+var revanche := false  # o guardião do mapa purificado pede revanche (sobe a insígnia)
 var purified := 0
 var bits_gained := 0
 var xp_gained := 0
@@ -135,7 +136,7 @@ func _offline_gains() -> void:
 		return
 	var lv: int = int((reg["nv"][0] + reg["nv"][1]) / 2)
 	var xp := n * (6 + lv * 2)
-	var b := int(n * 14 * [1.0, 1.5, 2.0][Game.elo_level("bolsa")])
+	var b := int(n * 14 * [1.0, 1.5, 2.0][Game.elo_level("bolsa")] * (1.0 + Game.badge_bonus("cobre")))
 	Game.bits += b
 	bits_gained += b
 	purified += n
@@ -302,6 +303,10 @@ func _open_duel() -> void:
 
 func _elo_xp(n: int) -> void:
 	if Game.gain_elo(n):
+		var slots0 := Game.badge_eq.size()
+		Game.badge_autoequip()
+		if Game.badge_eq.size() > slots0:
+			_log("O Elo abriu um espaço novo de insígnia!", Color("ffd84a"))
 		# o Elo subiu de nível: brilho dourado no personagem
 		_pop_icon(kid.position + Vector2(0, -46), "laco")
 		_burst(kid.position + Vector2(0, -24), Color("7affc1"), 14)
@@ -748,7 +753,7 @@ func _loop() -> void:
 		if sanct_ready:
 			continue
 		var z := Game.zone_of(my_region)
-		var raro := rng.randf() < 0.06
+		var raro := rng.randf() < 0.06 * (1.0 + Game.badge_bonus("nevoa"))
 		var pool: Array = Game.ZONE_RAROS[my_region] if raro else Game.zone_pool(my_region, z)
 		var sp: int = pool[rng.randi() % pool.size()]
 		var lv := Game.zone_levels(my_region, z)
@@ -805,7 +810,7 @@ func _encounter(e: Dictionary, raro: bool) -> void:
 	Game.sfx("purificar%d" % rng.randi_range(0, 2), -4.0, 1.2)
 	await _purify_fx(m, mat)
 	var xp: int = 6 + e["lv"] * 2
-	var b := int(rng.randi_range(8, 20) * [1.0, 1.5, 2.0][Game.elo_level("bolsa")] * (1.2 if Game.has_skill(Game.team[0], "v3") else 1.0) * (1.0 + Game.gear_bonus(Game.team[0], "bits")))
+	var b := int(rng.randi_range(8, 20) * [1.0, 1.5, 2.0][Game.elo_level("bolsa")] * (1.2 if Game.has_skill(Game.team[0], "v3") else 1.0) * (1.0 + Game.gear_bonus(Game.team[0], "bits")) * (1.0 + Game.badge_bonus("cobre")))
 	purified += 1
 	xp_gained += xp
 	bits_gained += b
@@ -877,6 +882,10 @@ func _check_zone() -> void:
 			_pop_text(kid.position + Vector2(8, -50), str(bonus), Color("ffd84a"))
 			Game.sfx("item")
 			_refresh()
+			# insígnia ainda não está no III: o guardião pede revanche
+			if Game.badge_level(reg["lider"]["badge"]) < 3 and not sanct_ready:
+				revanche = true
+				await _sanctuary_ready()
 		elif not sanct_ready:
 			await _sanctuary_ready()
 		return
@@ -988,7 +997,7 @@ func _fight(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> bool:
 		# ataque do parceiro
 		var mk := _best_move(lm, e)
 		var mv: Dictionary = Game.MOVES[mk]
-		var crit := rng.randf() < 0.12
+		var crit := rng.randf() < 0.12 + Game.badge_bonus("brasa")
 		var dmg := int(Game.calc_damage(lm, e, mv, crit) * (1.0 + Game.skill_dmg(lm)))
 		var home: Vector2 = pet.position
 		pet.play("attack")
@@ -1311,7 +1320,11 @@ func _sanctuary_ready() -> void:
 	stage.add_child(leader_spr)
 	create_tween().tween_property(leader_spr, "modulate:a", 1.0, 0.4)
 	_pop_icon(gym.position + Vector2(0, -70), "santuario")
-	sanct_btn = _icon_btn("santuario", "Desafiar %s no %s (equipe Nv %d+)" % [ld["nome"], ld["ginasio"], _rec_lv() ])
+	var tip := "Desafiar %s no %s (equipe Nv %d+)" % [ld["nome"], ld["ginasio"], _rec_lv()]
+	if revanche:
+		var nb := Game.badge_level(ld["badge"]) + 1
+		tip = "REVANCHE: %s quer testar você de novo (equipe Nv %d+). Vencer sobe a %s para o nível %s." % [ld["nome"], _rec_lv(), ld["insignia"], Game.ROMAN[nb]]
+	sanct_btn = _icon_btn("santuario", tip)
 	sanct_btn.position = Vector2(W * 0.5 - 12, 1)
 	sanct_btn.custom_minimum_size = Vector2(26, 20)
 	sanct_btn.pivot_offset = Vector2(13, 10)
@@ -1326,13 +1339,37 @@ func _sanctuary_ready() -> void:
 	tw.tween_property(sanct_btn, "scale", Vector2.ONE, 0.45)
 	tw.parallel().tween_property(sanct_btn, "modulate", Color.WHITE, 0.45)
 	_refresh()
+	if revanche:
+		_log("%s pede revanche! Vencer sobe a %s." % [ld["nome"], ld["insignia"]], Color("ffd84a"))
+		_revanche_timeout()
+
+
+## A revanche não trava o farm: se ninguém aceitar em 60 s, o guardião vai
+## embora e volta quando a zona 10 for vencida de novo.
+func _revanche_timeout() -> void:
+	await get_tree().create_timer(60.0).timeout
+	if not is_inside_tree() or not revanche or not sanct_ready or dueling or want_sanct:
+		return
+	_log("%s voltou para o santuário. A revanche volta depois da próxima zona." % reg["lider"]["nome"], Color(1, 1, 1, 0.7))
+	revanche = false
+	sanct_ready = false
+	for n in [gym, leader_spr, sanct_btn]:
+		if is_instance_valid(n):
+			n.queue_free()
+	_set_walking(true)
+	_refresh()
 
 
 func _rec_lv() -> int:
 	var top := 0
 	for pr in reg["lider"]["time"]:
 		top = maxi(top, pr[1])
-	return Game.zone_levels(my_region, Game.ZONES).y + 1
+	return Game.zone_levels(my_region, Game.ZONES).y + 1 + _rev_extra()
+
+
+## Revanche: o time do guardião fica +10 níveis por nível da insígnia e mais raro.
+func _rev_extra() -> int:
+	return 10 * Game.badge_level(reg["lider"]["badge"]) if revanche else 0
 
 
 func _sanctuary_challenge() -> void:
@@ -1353,8 +1390,8 @@ func _sanctuary_challenge() -> void:
 	var boss_off := [1, 2, 4]
 	for bi in ld["time"].size():
 		var pair: Array = ld["time"][bi]
-		var blv: int = Game.zone_levels(my_region, Game.ZONES).y - 1 + boss_off[mini(bi, 2)]
-		var e := Game.new_monster(pair[0], blv, pair[2] if pair.size() > 2 else 0)
+		var blv: int = Game.zone_levels(my_region, Game.ZONES).y - 1 + boss_off[mini(bi, 2)] + _rev_extra()
+		var e := Game.new_monster(pair[0], blv, mini(4, (pair[2] if pair.size() > 2 else 0) + (1 if revanche else 0)))
 		e["nefasto"] = Game.region_corrupt(Game.region)
 		var d = load("res://scripts/strip_duel.gd").new()
 		d.host = self
@@ -1386,8 +1423,10 @@ func _sanctuary_challenge() -> void:
 			t.parallel().tween_property(p, "modulate:a", 1.0, 0.4)
 	lead["hp"] = Game.max_hp(lead)
 	await get_tree().create_timer(0.5).timeout
-	print("[santuario] venceu=", won)
-	if won:
+	print("[santuario] venceu=", won, " revanche=", revanche)
+	if won and revanche:
+		await _revanche_win()
+	elif won:
 		await _sanctuary_win()
 	else:
 		# o líder ri e espera: precisa upar
@@ -1403,6 +1442,7 @@ func _sanctuary_win() -> void:
 	var ld: Dictionary = reg["lider"]
 	var was := Game.region
 	Game.badges = maxi(Game.badges, was + 1)
+	Game.badge_autoequip()
 	Game.region_unlocked = mini(Game.REGIONS.size(), was + 2)
 	Game.elo_charges += 2
 	_elo_xp(50)
@@ -1464,6 +1504,45 @@ func _sanctuary_win() -> void:
 		gym.queue_free()
 		leader_spr.queue_free()
 		sanct_btn.queue_free()
+
+
+## Revanche vencida: a insígnia sobe de nível e o guardião volta para dentro.
+func _revanche_win() -> void:
+	Game.sfx("vitoria")
+	var ld: Dictionary = reg["lider"]
+	var k: String = ld["badge"]
+	Game.badge_lv[k] = mini(3, Game.badge_level(k) + 1)
+	_elo_xp(30)
+	_heal_party(1.0, true)
+	var badge := Sprite2D.new()
+	badge.texture = Game.tex("res://assets/badges/%s.png" % k)
+	badge.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	badge.position = kid.position + Vector2(0, -20)
+	badge.scale = Vector2(0.1, 0.1)
+	add_child(badge)
+	var gl := Glow.new()
+	gl.col = Color("ffd84a")
+	badge.add_child(gl)
+	var tw := create_tween()
+	tw.tween_property(badge, "position:y", kid.position.y - 52, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(badge, "scale", Vector2(0.5, 0.5), 0.6).set_trans(Tween.TRANS_BACK)
+	await tw.finished
+	_sparkle(badge.position)
+	_pop_text(badge.position + Vector2(14, -8), Game.ROMAN[Game.badge_level(k)], Color("ffd84a"))
+	var fx: Dictionary = Game.BADGE_FX[k]
+	_log("%s subiu para o nível %s: %s" % [ld["insignia"], Game.ROMAN[Game.badge_level(k)], fx["efeito"] % fx["val"][Game.badge_level(k) - 1]], Color("ffd84a"))
+	if not Game.badge_eq.has(k):
+		_log("Dica: equipe a insígnia no Elo (Bolsa > INSÍGNIAS) para usar o bônus.", Color("bff6ff"))
+	_pop_icon(leader_spr.position + Vector2(0, -36), "coracao")
+	await get_tree().create_timer(2.0).timeout
+	badge.queue_free()
+	revanche = false
+	sanct_ready = false
+	Game.zone_kills[my_region] = 0
+	for n in [gym, leader_spr, sanct_btn]:
+		if is_instance_valid(n):
+			n.queue_free()
+	_set_walking(true)
 
 
 ## Evolução no idle: abre uma janelinha (o painel) com a cena da evolução.
@@ -1541,7 +1620,7 @@ func _give_xp(xp: int) -> void:
 	for i in Game.team.size():
 		var m: Dictionary = Game.team[i]
 		var lv0: int = m["lv"]
-		m["xp"] += int(xp * (1.2 if Game.has_skill(m, "v1") else 1.0) * (1.0 + Game.gear_bonus(m, "xp")))
+		m["xp"] += int(xp * (1.2 if Game.has_skill(m, "v1") else 1.0) * (1.0 + Game.gear_bonus(m, "xp")) * (1.0 + Game.badge_bonus("prisma")))
 		while m["xp"] >= Game.xp_need(m):
 			m["xp"] -= Game.xp_need(m)
 			Game.level_up(m)

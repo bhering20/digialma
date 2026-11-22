@@ -109,6 +109,59 @@ const ELO_UPGRADES := {
 }
 var elo_up := {}
 
+## INSÍGNIAS: cada guardião vencido dá uma insígnia com um efeito. O Elo tem
+## espaços para equipá-las (1, +1 no Elo 6, +1 no Elo 12) e cada uma sobe de
+## nível (I a III) vencendo a REVANCHE do guardião na zona 10 do mapa purificado.
+const BADGE_FX := {
+	"raiz": {"nome": "Raiz", "efeito": "Suportes curam +%d%%", "val": [15, 30, 50]},
+	"onda": {"nome": "Onda", "efeito": "+%d%% na captura automática de raros", "val": [5, 10, 15]},
+	"brasa": {"nome": "Brasa", "efeito": "+%d%% de chance de crítico no idle", "val": [5, 9, 14]},
+	"nevoa": {"nome": "Névoa", "efeito": "Raros aparecem +%d%% mais", "val": [25, 50, 80]},
+	"cobre": {"nome": "Engrenagem", "efeito": "+%d%% de bits ganhos", "val": [15, 30, 50]},
+	"prisma": {"nome": "Prisma", "efeito": "+%d%% de XP para a equipe", "val": [15, 30, 50]},
+}
+const BADGE_SLOT_ELO := [1, 6, 12]  # nível do Elo que abre cada espaço
+const ROMAN := ["", "I", "II", "III"]
+var badge_lv := {}  # insígnia -> nível (1 a 3)
+var badge_eq := []  # insígnias equipadas no Elo
+
+
+func badge_owned() -> Array:
+	var r: Array = []
+	for i in mini(badges, REGIONS.size()):
+		r.append(REGIONS[i]["lider"]["badge"])
+	return r
+
+
+func badge_level(k: String) -> int:
+	return int(badge_lv.get(k, 1)) if badge_owned().has(k) else 0
+
+
+func badge_slots() -> int:
+	var n := 0
+	for need in BADGE_SLOT_ELO:
+		if elo_lv >= need:
+			n += 1
+	return n
+
+
+## Bônus da insígnia (0 se ela não estiver equipada).
+func badge_bonus(k: String) -> float:
+	if not badge_eq.has(k) or badge_level(k) <= 0:
+		return 0.0
+	return BADGE_FX[k]["val"][badge_level(k) - 1] / 100.0
+
+
+## Arruma os espaços: tira o que não vale mais e preenche espaços vazios.
+func badge_autoequip() -> void:
+	var owned := badge_owned()
+	badge_eq = badge_eq.filter(func(k): return owned.has(k))
+	while badge_eq.size() > badge_slots():
+		badge_eq.pop_back()
+	for k in owned:
+		if badge_eq.size() < badge_slots() and not badge_eq.has(k):
+			badge_eq.append(k)
+
 ## Sprites próprios (fora do pacote)
 
 ## Sprites próprios (fora do pacote): ramos de evolução recoloridos.
@@ -324,7 +377,7 @@ func zone_pool(r: int, z: int) -> Array:
 
 
 func auto_rare_chance() -> float:
-	return AUTO_RARE_BASE + auto_rare_bonus + (0.42 if elo_level("chamado") > 0 else 0.0)
+	return AUTO_RARE_BASE + auto_rare_bonus + (0.42 if elo_level("chamado") > 0 else 0.0) + badge_bonus("onda")
 
 
 # --- Regiões da fatia jogável
@@ -491,7 +544,7 @@ void fragment() {
 # ---------------------------------------------------------------- SAVE
 const VERSION := "0.4"
 const SAVE_PATH := "user://digialma_save.dat"
-const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp", "dex_caught"]
+const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp", "dex_caught", "badge_lv", "badge_eq"]
 var last_seen := 0  # quando o jogo foi salvo pela última vez (para o progresso offline)
 var _save_t := 0.0
 var _testing := false
@@ -567,6 +620,7 @@ func load_game() -> bool:
 			zone_max[r] = 1
 	for m in team + reserve:
 		dex_register(m)
+	badge_autoequip()
 	return true
 
 
@@ -1315,7 +1369,7 @@ func is_support(m: Dictionary) -> bool:
 
 
 func heal_amount(healer: Dictionary, target: Dictionary) -> int:
-	var k: float = SUPPORT.get(int(healer["id"]), 0.0) * (1.0 + int(healer["lv"]) * 0.01) * rar_mult(healer)
+	var k: float = SUPPORT.get(int(healer["id"]), 0.0) * (1.0 + int(healer["lv"]) * 0.01) * rar_mult(healer) * (1.0 + badge_bonus("raiz"))
 	return maxi(1, int(max_hp(target) * k))
 
 
@@ -1517,6 +1571,8 @@ func new_game(starter: int) -> void:
 	new_gear("coracao", 0)
 	region_unlocked = 1
 	badges = 0
+	badge_lv = {}
+	badge_eq = []
 	elo_charges = 6
 	intro_done = true
 	inventory = {"pocao": 5, "super_pocao": 1, "orbe_alma": 3, "fruta": 3, "chip_elo": 2, "ovo": 1, "mapa": 1}
@@ -2606,7 +2662,44 @@ func _debug_mid() -> void:
 		snap.call("bg_%d" % r)
 		bgs.queue_free()
 		amb.queue_free()
-		# Despertar: Chaminéus Nv 72 + Cristal -> Brumath
+		# insígnias: aba do menu e revanche
+	badges = 4
+	elo_lv = 7
+	badge_eq = []
+	badge_autoequip()
+	print("insignias: donas=", badge_owned(), " espacos=", badge_slots(), " equipadas=", badge_eq, " bonus raiz=", badge_bonus("raiz"))
+	return_to = "tab:insignias"
+	var menu = load("res://scenes/arvores.tscn").instantiate() if ResourceLoader.exists("res://scenes/arvores.tscn") else null
+	if menu:
+		get_tree().root.add_child(menu)
+		await get_tree().create_timer(0.8).timeout
+		snap.call("insignias")
+		menu.queue_free()
+	return_to = ""
+	# revanche na Floresta (purificada): duelo automático
+	debug_species = -9
+	region = 0
+	zone[0] = 10
+	zone_max[0] = 10
+	get_tree().change_scene_to_file("res://scenes/idle.tscn")
+	await get_tree().create_timer(3.0).timeout
+	var idl = get_tree().current_scene
+	idl.revanche = true
+	idl._sanctuary_ready()
+	await get_tree().create_timer(6.0).timeout
+	snap.call("revanche_porta")
+	idl.want_sanct = true
+	for i in 40:
+		await get_tree().create_timer(1.0).timeout
+		if int(badge_lv.get("raiz", 1)) > 1:
+			break
+	await get_tree().create_timer(3.0).timeout
+	snap.call("revanche_fim")
+	print("revanche: raiz nivel=", badge_level("raiz"))
+	debug_species = -1
+	get_tree().unload_current_scene()
+	await get_tree().process_frame
+	# Despertar: Chaminéus Nv 72 + Cristal -> Brumath
 	inventory["cristal_despertar"] = 1
 	print("pode despertar=", can_awaken(team[0]))
 	var ev = preload("res://scripts/evolution.gd").new()

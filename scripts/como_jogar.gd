@@ -4,7 +4,7 @@ extends Control
 const UI := "res://assets/ui/idle_%s.png"
 const ROWS := [
 	["purif", "Seu grupo explora e purifica Nefastos sozinho. Deixe a faixa rodando enquanto usa o PC. Mesmo fechado, ele continua (até 8h)."],
-	["santuario", "Cada mapa tem 10 zonas, cada vez mais fortes (1-1, 1-2...). Se o grupo todo cair, volta uma zona. Na zona 10, o Santuário: vença o guardião para purificar o mapa."],
+	["santuario", "Cada mapa tem 10 zonas, cada vez mais fortes (1-1, 1-2...). Se o grupo todo cair, volta uma zona. Na zona 10, o Santuário: vença o guardião para purificar o mapa e ganhar a insígnia (equipe no Elo; a revanche sobe o nível dela)."],
 	["mapa", "Mapa do Mundo: veja as ilhas, o que já foi purificado e clique numa zona liberada para viajar. < > e o botão de setas circulares também mudam de zona."],
 	["alma", "Digialma caído vira ALMA-NUVEM e não luta. Só volta com um Orbe de Alma: clique na nuvenzinha. Suportes (ícone +) curam o time durante as lutas."],
 	["lutar", "Espadas pulsando = um Digialma raro quer lutar. No duelo, clique quando o anel fechar no inimigo; anel vermelho em você = clique para desviar."],
