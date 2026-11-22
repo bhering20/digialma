@@ -89,7 +89,7 @@ func _build() -> void:
 	bg.modulate = region["tint"]
 	world.add_child(bg)
 	var plats := Platforms.new()
-	plats.region_name = region["arena"]
+	plats.region_name = region.get("plataforma", region["arena"])
 	world.add_child(plats)
 	var corrupt := leader.is_empty() and Game.region_corrupt(Game.REGIONS.find(region))
 	if corrupt:
@@ -1802,7 +1802,10 @@ class Platforms extends Node2D:
 	func _draw() -> void:
 		var pal := {"arena_plant": [Color("4f8a3a"), Color("79b84e"), Color("a6dc78")],
 			"arena_water": [Color("c9a160"), Color("e8c88a"), Color("fff0c0")],
-			"arean_fire": [Color("5a2a2a"), Color("8a3f30"), Color("c86a40")]}
+			"arean_fire": [Color("5a2a2a"), Color("8a3f30"), Color("c86a40")],
+			"pantano": [Color("2a3a2a"), Color("44583a"), Color("6a8a4a")],
+			"cobre": [Color("5a3a22"), Color("8a5a30"), Color("c8884a")],
+			"cristal": [Color("6a5a8a"), Color("a090c8"), Color("d8d0f8")]}
 		var c: Array = pal.get(region_name, pal["arena_plant"])
 		for p in [[E_FEET, 92.0], [P_FEET, 104.0]]:
 			_ell(p[0] + Vector2(0, 2), p[1] + 6, 16, c[0])

@@ -87,7 +87,7 @@ func _ready() -> void:
 	road.material = cmat
 	add_child(road)
 	amb2 = MapAmbient.new()
-	amb2.kind = ["floresta", "costa", "vulcao"][mini(Game.region, 2)]
+	amb2.kind = ["floresta", "costa", "vulcao", "pantano", "ruinas", "deserto"][mini(Game.region, 5)]
 	amb2.corrupted = cmat != null
 	amb2.ground = GROUND
 	add_child(amb2)
@@ -1153,9 +1153,11 @@ func _duel_call(e: Dictionary) -> void:
 	stage.add_child(aura)
 	var tw := create_tween()
 	tw.tween_property(m, "position:x", 340.0, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	while tw.is_running():
+	while tw.is_running() and is_inside_tree():
 		aura.position = m.position + Vector2(0, -18)
 		await get_tree().process_frame
+	if not is_inside_tree():
+		return  # a cena mudou (viagem pelo mapa) no meio da chegada
 	aura.position = m.position + Vector2(0, -18)
 	_sparkle(m.position + Vector2(0, -26))
 	_pop_text(m.position + Vector2(0, -44), "!", Game.rar_color(e["rar"]))
@@ -1401,11 +1403,11 @@ func _sanctuary_win() -> void:
 	var ld: Dictionary = reg["lider"]
 	var was := Game.region
 	Game.badges = maxi(Game.badges, was + 1)
-	Game.region_unlocked = mini(3, was + 2)
+	Game.region_unlocked = mini(Game.REGIONS.size(), was + 2)
 	Game.elo_charges += 2
 	_elo_xp(50)
 	Game.inventory["orbe_alma"] = int(Game.inventory.get("orbe_alma", 0)) + 2
-	if was == 2:
+	if was >= 2:
 		Game.inventory["cristal_despertar"] = int(Game.inventory.get("cristal_despertar", 0)) + 1
 	# santuário purificado devolve as almas
 	_heal_party(1.0, true)
@@ -1441,6 +1443,14 @@ func _sanctuary_win() -> void:
 	# próximo mapa (o idle segue para lá). O mapa purificado continua
 	# disponível para farmar (setas de zona).
 	Game.zone_kills[was] = 0
+	# a fala do guardião purificado aparece no registro
+	for ln in Game.STORY.get("lider%d_depois" % was, []):
+		_log(("%s: %s" % [ln[0] if ln[0] != "elo" else "ELO", ln[1]]) if ln[0] != "" else ln[1], Color("bff6ff"))
+		await get_tree().create_timer(2.6).timeout
+	# 3 mundos = fim do 1º ato: o Despertar acorda (o mid game continua)
+	if was == 2 and not Game.all_purified:
+		Game.all_purified = true
+		await _finale()
 	if was < Game.REGIONS.size() - 1:
 		Game.region = was + 1
 		Game.zone[was + 1] = 1
@@ -1517,6 +1527,10 @@ func _do_awaken(m: Dictionary, i: int) -> void:
 	if is_instance_valid(w):
 		w.queue_free()
 	if i >= 0 and i < pets.size():
+		pets[i].sprite_frames = Game.monster_frames(m["id"])
+		pets[i].play("walk" if walking else "idle")
+		pets[i].foot = Game.foot_offset(m["id"])
+		pets[i].offset = pets[i].foot
 		pets[i].set_awakened(true)
 		_burst(pets[i].position + Vector2(0, -20), Color("ffd25a"), 30)
 		_sparkle(pets[i].position + Vector2(0, -30))
@@ -1628,6 +1642,10 @@ class GroundStrip extends Node2D:
 			"terra": {"grama": Color("6fae3a"), "grama2": Color("8cc94a"), "tufo": Color("4f8a26"), "trilha": Color("caa66a"), "trilha2": Color("a9844f"), "terra": Color("6b4a32"), "terra2": Color("4a3122"), "raiz": Color("3a2618")},
 			"areia": {"grama": Color("f0d699"), "grama2": Color("fbe9bd"), "tufo": Color("7cc6a8"), "trilha": Color("e2bd78"), "trilha2": Color("c9a160"), "terra": Color("b88a52"), "terra2": Color("8e683c"), "raiz": Color("6e4f2c")},
 			"basalto": {"grama": Color("4a3a40"), "grama2": Color("6a545a"), "tufo": Color("ff7a2a"), "trilha": Color("5a4248"), "trilha2": Color("3d2b31"), "terra": Color("2e2024"), "terra2": Color("1e1417"), "raiz": Color("ff5a1a")},
+			# mid game
+			"lodo": {"grama": Color("3e5a3a"), "grama2": Color("5a7a44"), "tufo": Color("8ab05a"), "trilha": Color("5a5040"), "trilha2": Color("433a2e"), "terra": Color("2e2a24"), "terra2": Color("1e1a18"), "raiz": Color("b8e05a")},
+			"cobre": {"grama": Color("8a5a3a"), "grama2": Color("b07a4a"), "tufo": Color("4ab0a0"), "trilha": Color("c89a60"), "trilha2": Color("a07a48"), "terra": Color("5a3a26"), "terra2": Color("3a2418"), "raiz": Color("ffb060")},
+			"cristal": {"grama": Color("e0d0ec"), "grama2": Color("fff4ff"), "tufo": Color("8af0f0"), "trilha": Color("d8c0a0"), "trilha2": Color("b89a80"), "terra": Color("8a6a9a"), "terra2": Color("5a4a6a"), "raiz": Color("bff6ff")},
 		}[kind]
 
 	func _h(k: int) -> int:
@@ -1689,7 +1707,8 @@ class GroundStrip extends Node2D:
 
 
 ## Partículas leves do mapa (não distraem): vagalumes e folhas na Floresta,
-## brilhos e bolhas na Costa, brasas e cinzas no Monte Brasa. Corrompido:
+## brilhos e bolhas na Costa, brasas e cinzas no Monte Brasa, esporos ácidos e
+## fumaça no Pântano, faíscas e poeira nas Ruínas, brilhos e areia no Deserto. Corrompido:
 ## esporos roxos subindo devagar.
 class MapAmbient extends Node2D:
 	var kind := "floresta"
@@ -1722,6 +1741,16 @@ class MapAmbient extends Node2D:
 					"vulcao":
 						p["y"] -= (10.0 if p["k"] == 0 else -5.0) * d * p["sp"]
 						p["x"] += sin(t + p["ph"]) * 5.0 * d
+					"pantano":
+						p["y"] -= (3.0 if p["k"] == 0 else 1.0) * d * p["sp"]
+						p["x"] += sin(t * 0.6 + p["ph"]) * (4.0 if p["k"] == 0 else 9.0) * d
+					"ruinas":
+						if p["k"] == 1:
+							p["y"] += 3.0 * d * p["sp"]
+					"deserto":
+						if p["k"] == 1:
+							p["x"] -= 16.0 * d * p["sp"]
+							p["y"] += sin(t * 2.0 + p["ph"]) * 3.0 * d
 			if p["x"] < -10 or p["y"] < 10 or p["y"] > ground + 2:
 				var n := _new(650.0 if drift > 0.0 else randf_range(0, 640))
 				p.merge(n, true)
@@ -1753,3 +1782,24 @@ class MapAmbient extends Node2D:
 						draw_rect(Rect2(pos, Vector2(1, 1)), Color(1.0, 0.55 + 0.3 * tw, 0.2, 0.85 * fa))
 					else:
 						draw_rect(Rect2(pos, Vector2(1, 1)), Color(0.5, 0.45, 0.45, 0.5 * fa))
+				"pantano":
+					if p["k"] == 0:
+						draw_circle(pos, 1.6, Color(0.78, 0.94, 0.3, 0.15 * fa * tw))
+						draw_rect(Rect2(pos, Vector2(1, 1)), Color(0.85, 1.0, 0.45, 0.8 * fa * tw))
+					else:
+						draw_rect(Rect2(pos, Vector2(3, 1)), Color(0.7, 0.68, 0.75, 0.3 * fa))
+				"ruinas":
+					if p["k"] == 0:
+						if tw > 0.8:
+							draw_rect(Rect2(pos, Vector2(1, 1)), Color("5af0ff") if int(p["ph"] * 10.0) % 2 == 0 else Color("ffd27a"))
+					else:
+						draw_rect(Rect2(pos, Vector2(1, 1)), Color(0.78, 0.62, 0.45, 0.55 * fa))
+				"deserto":
+					if p["k"] == 0:
+						if tw > 0.75:
+							var k := 2.0 if tw > 0.93 else 1.0
+							var gc := Color(0.85, 0.95, 1.0, fa * tw)
+							draw_rect(Rect2(pos - Vector2(k, 0), Vector2(k * 2 + 1, 1)), gc)
+							draw_rect(Rect2(pos - Vector2(0, k), Vector2(1, k * 2 + 1)), gc)
+					else:
+						draw_rect(Rect2(pos, Vector2(2, 1)), Color(0.92, 0.82, 0.7, 0.5 * fa))

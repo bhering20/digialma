@@ -51,7 +51,8 @@ func _ready() -> void:
 	path_line = PathLine.new()
 	path_line.unlocked = Game.region_unlocked
 	add_child(path_line)
-	for i in Game.REGIONS.size():
+	# mapa antigo (modo rota): só os 3 primeiros mundos
+	for i in mini(Game.REGIONS.size(), 3):
 		_region_card(i)
 	_hud()
 	pause_menu = PauseMenu.new()

@@ -19,11 +19,13 @@ var glitch_on := 0.0
 
 
 static func kind_for(region: Dictionary) -> String:
-	match region.get("arena", ""):
+	match region.get("plataforma", region.get("arena", "")):
 		"arena_water":
 			return "costa"
 		"arean_fire":
 			return "vulcao"
+		"pantano", "cobre", "cristal":
+			return {"pantano": "pantano", "cobre": "ruinas", "cristal": "deserto"}[region["plataforma"]]
 	return "floresta"
 
 
@@ -47,6 +49,21 @@ func _ready() -> void:
 				parts.append({"p": _rand_pt(0, 360), "ph": rng.randf() * TAU, "v": rng.randf_range(18, 45), "life": rng.randf()})
 			for i in 18:
 				parts2.append({"p": _rand_pt(-40, 360), "ph": rng.randf() * TAU, "v": rng.randf_range(6, 14)})
+		"pantano":
+			for i in 18:
+				parts.append({"p": _rand_pt(240, 380), "ph": rng.randf() * TAU, "v": rng.randf_range(6, 14), "r": rng.randf_range(1.5, 3.0)})
+			for i in 7:
+				parts2.append({"p": _rand_pt(180, 330), "ph": rng.randf() * TAU, "v": rng.randf_range(4, 10), "w": rng.randf_range(50, 110)})
+		"ruinas":
+			for i in 24:
+				parts.append({"p": _rand_pt(120, 340), "ph": rng.randf() * TAU, "life": rng.randf()})
+			for i in 20:
+				parts2.append({"p": _rand_pt(-40, 360), "ph": rng.randf() * TAU, "v": rng.randf_range(5, 12)})
+		"deserto":
+			for i in 26:
+				parts.append({"p": _rand_pt(20, 300), "ph": rng.randf() * TAU, "s": rng.randf_range(0.6, 1.4)})
+			for i in 30:
+				parts2.append({"p": _rand_pt(230, 360), "ph": rng.randf() * TAU, "v": rng.randf_range(40, 90)})
 
 
 func set_corrupted(on: bool) -> void:
@@ -100,6 +117,33 @@ func _process(delta: float) -> void:
 				a["p"].x += sin(t + a["ph"]) * 8.0 * delta - 5.0 * delta
 				if a["p"].y > 370:
 					a["p"] = Vector2(rng.randf_range(0, 680), -10)
+		"pantano":
+			for b in parts:
+				b["p"].y -= b["v"] * delta
+				b["p"].x += sin(t * 1.5 + b["ph"]) * 6.0 * delta
+				if b["p"].y < 220:
+					b["p"] = _rand_pt(340, 380)
+			for f in parts2:
+				f["p"].x -= f["v"] * delta
+				if f["p"].x < -120:
+					f["p"] = Vector2(rng.randf_range(660, 760), rng.randf_range(180, 330))
+		"ruinas":
+			for e in parts:
+				e["life"] += delta * 0.9
+				if e["life"] > 1.0:
+					e["p"] = _rand_pt(120, 340)
+					e["life"] = 0.0
+			for a in parts2:
+				a["p"].y += a["v"] * delta
+				a["p"].x += sin(t * 0.8 + a["ph"]) * 4.0 * delta
+				if a["p"].y > 370:
+					a["p"] = Vector2(rng.randf_range(0, 640), -10)
+		"deserto":
+			for g in parts2:
+				g["p"].x -= g["v"] * delta
+				g["p"].y += sin(t * 3.0 + g["ph"]) * 4.0 * delta
+				if g["p"].x < -10:
+					g["p"] = Vector2(rng.randf_range(650, 700), rng.randf_range(230, 360))
 	queue_redraw()
 
 
@@ -156,6 +200,39 @@ func _draw() -> void:
 				col.a = (1.0 - life) * fl
 				draw_circle(p, 2.5, Color(col, col.a * 0.25))
 				draw_rect(Rect2(p, Vector2(1, 1) if life > 0.5 else Vector2(2, 2)), col)
+		"pantano":
+			# neblina baixa e bolhas de ácido subindo
+			for f in parts2:
+				var fp: Vector2 = f["p"]
+				var w: float = f["w"]
+				for k in 3:
+					draw_circle(fp + Vector2(k * w * 0.35, sin(t * 0.5 + f["ph"] + k) * 4.0), w * 0.3, Color(0.75, 0.75, 0.82, 0.05))
+			for b in parts:
+				var p: Vector2 = (b["p"] as Vector2).round()
+				draw_arc(p, b["r"], 0, TAU, 10, Color(0.78, 0.94, 0.3, 0.55), 1.0)
+				draw_rect(Rect2(p + Vector2(-1, -1), Vector2(1, 1)), Color(0.95, 1, 0.8, 0.8))
+		"ruinas":
+			for e in parts:
+				var life: float = e["life"]
+				if life < 0.25:
+					var p: Vector2 = (e["p"] as Vector2).round()
+					var col := Color("5af0ff") if int(e["ph"] * 10.0) % 2 == 0 else Color("ffd27a")
+					col.a = 1.0 - life * 4.0
+					draw_line(p, p + Vector2(cos(e["ph"]), sin(e["ph"])) * 5.0, col, 1.0)
+					draw_rect(Rect2(p, Vector2(1, 1)), Color(1, 1, 1, col.a))
+			for a in parts2:
+				draw_rect(Rect2((a["p"] as Vector2).round(), Vector2(1, 1)), Color(0.78, 0.62, 0.45, 0.55))
+		"deserto":
+			for s in parts:
+				var a := maxf(0.0, sin(t * 2.2 * s["s"] + s["ph"]))
+				if a > 0.6:
+					var p: Vector2 = (s["p"] as Vector2).round()
+					var k := 2.0 if a > 0.9 else 1.0
+					var gc := Color(0.88, 0.94, 1.0, a) if int(s["ph"] * 7.0) % 3 != 0 else Color(1.0, 0.85, 1.0, a)
+					draw_rect(Rect2(p - Vector2(k, 0), Vector2(k * 2 + 1, 1)), gc)
+					draw_rect(Rect2(p - Vector2(0, k), Vector2(1, k * 2 + 1)), gc)
+			for g in parts2:
+				draw_rect(Rect2((g["p"] as Vector2).round(), Vector2(2, 1)), Color(0.95, 0.85, 0.72, 0.45))
 
 
 func _draw_corruption() -> void:

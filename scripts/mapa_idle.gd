@@ -5,9 +5,11 @@ extends Control
 ## liberada para viajar até ela. Os mundos seguintes aparecem como "???".
 
 const UI := "res://assets/ui/idle_%s.png"
-const ISLAND_COL := [Color("4fa85a"), Color("3f8fd8"), Color("d8643a")]
-const CENTERS := [Vector2(118, 200), Vector2(318, 168), Vector2(516, 206)]
-const FUTURE := [["Mid game", Vector2(230, 300)], ["End game", Vector2(440, 304)]]
+const ISLAND_COL := [Color("4fa85a"), Color("3f8fd8"), Color("d8643a"), Color("5a7a4a"), Color("c8803a"), Color("a088e0")]
+## Duas fileiras: os 3 primeiros mundos em cima e o mid game embaixo, em "S".
+const CENTERS := [Vector2(112, 108), Vector2(320, 96), Vector2(528, 110), Vector2(528, 252), Vector2(320, 262), Vector2(112, 250)]
+const FUTURE := [["End game", Vector2(214, 182)]]
+const IS := 0.72  # escala das ilhas (cabem 6 na tela)
 
 var t := 0.0
 var nodes := []  # [{pos, r, z}]
@@ -52,7 +54,7 @@ func _build_nodes() -> void:
 			# trilha em espiral, de fora para dentro, terminando no santuário
 			var k := float(z - 1) / (Game.ZONES - 1)
 			var a := -2.6 + k * 4.6 + r * 0.7
-			var rad := 62.0 - k * 46.0
+			var rad := (62.0 - k * 46.0) * IS
 			nodes.append({"pos": c + Vector2(cos(a) * rad, sin(a) * rad * 0.62), "r": r, "z": z})
 
 
@@ -114,8 +116,9 @@ func _draw() -> void:
 		draw_rect(Rect2(p, Vector2(1, 1)), Color(1, 1, 1, 0.15 + 0.15 * sin(t * 1.5 + i)))
 	# pontes entre as ilhas
 	for r in Game.REGIONS.size() - 1:
-		var a: Vector2 = CENTERS[r] + Vector2(60, -6)
-		var b: Vector2 = CENTERS[r + 1] + Vector2(-64, 4)
+		var dir: Vector2 = (CENTERS[r + 1] - CENTERS[r]).normalized()
+		var a: Vector2 = CENTERS[r] + dir * Vector2(60, 40)
+		var b: Vector2 = CENTERS[r + 1] - dir * Vector2(62, 42)
 		var open := Game.badges > r
 		_dashed(a, b, Color(1, 0.9, 0.6, 0.6) if open else Color(1, 1, 1, 0.15))
 	# ilhas
@@ -173,7 +176,7 @@ func _island(r: int) -> void:
 	for i in 36:
 		var a := TAU * i / 36.0
 		var wob := 1.0 + 0.12 * sin(a * 3.0 + r * 2.0) + 0.06 * sin(a * 7.0 + r)
-		pts.append(c + Vector2(cos(a) * 82.0, sin(a) * 56.0) * wob)
+		pts.append(c + Vector2(cos(a) * 82.0, sin(a) * 56.0) * wob * IS)
 	# sombra e borda
 	var sh := PackedVector2Array()
 	for p in pts:
@@ -188,17 +191,17 @@ func _island(r: int) -> void:
 	if corrupt and not locked:
 		for i in 9:
 			var a := t * 0.25 + i * TAU / 9.0
-			var fp := c + Vector2(cos(a) * 46.0, sin(a) * 28.0)
-			draw_circle(fp, 20.0 + 4.0 * sin(t + i), Color(0.55, 0.2, 0.8, 0.12))
+			var fp := c + Vector2(cos(a) * 46.0, sin(a) * 28.0) * IS
+			draw_circle(fp, (20.0 + 4.0 * sin(t + i)) * IS, Color(0.55, 0.2, 0.8, 0.12))
 	var f := get_theme_font("font", "Label")
 	var nm: String = Game.REGIONS[r]["nome"] if not locked else "???"
-	draw_string(f, c + Vector2(-60, -66), nm, HORIZONTAL_ALIGNMENT_CENTER, 120, 9, Color.WHITE if not locked else Color(1, 1, 1, 0.4))
+	draw_string(f, c + Vector2(-60, -46), nm, HORIZONTAL_ALIGNMENT_CENTER, 120, 9, Color.WHITE if not locked else Color(1, 1, 1, 0.4))
 	var status := "TRANCADO" if locked else ("CORROMPIDO" if corrupt else "PURIFICADO")
 	var scol := Color(1, 1, 1, 0.35) if locked else (Color("c070ff") if corrupt else Color("6fe08a"))
-	draw_string(f, c + Vector2(-60, 70), status, HORIZONTAL_ALIGNMENT_CENTER, 120, 7, scol)
+	draw_string(f, c + Vector2(-60, 50), status, HORIZONTAL_ALIGNMENT_CENTER, 120, 7, scol)
 	if not corrupt and not locked:
 		var b := Game.tex("res://assets/badges/%s.png" % Game.REGIONS[r]["lider"]["badge"])
-		draw_texture_rect(b, Rect2(c + Vector2(48, -62), Vector2(20, 20)), false)
+		draw_texture_rect(b, Rect2(c + Vector2(36, -46), Vector2(18, 18)), false)
 
 
 func _ghost_island(c: Vector2, label: String) -> void:

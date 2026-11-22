@@ -642,7 +642,7 @@ func _gym_hall(ld: Dictionary) -> void:
 	_mark(3)
 	if Game.badges <= Game.region:
 		Game.badges = Game.region + 1
-		Game.region_unlocked = mini(3, Game.region + 2)
+		Game.region_unlocked = mini(3, maxi(Game.region_unlocked, Game.region + 2))
 		Game.elo_charges += 2
 	await _after_battle()
 	await _badge_scene(ld)

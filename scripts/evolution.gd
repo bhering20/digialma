@@ -262,6 +262,10 @@ func run_awaken(m: Dictionary) -> void:
 	flash.size = Game.BASE * K
 	add_child(flash)
 	Game.awaken(m)
+	# se a linha tem forma D desenhada, o sprite troca no clarão
+	spr.sprite_frames = Game.monster_frames(m["id"])
+	spr.offset = Game.foot_offset(m["id"])
+	spr.play("idle")
 	mat.set_shader_parameter("silhouette", 0.0)
 	rays.power = 1.0
 	await get_tree().create_timer(0.25).timeout
@@ -291,7 +295,10 @@ func run_awaken(m: Dictionary) -> void:
 	move_child(aura, spr.get_index())
 	spr.play("attack")
 	spr.animation_finished.connect(func(): spr.play("idle"), CONNECT_ONE_SHOT)
-	label.text = "%s DESPERTOU!" % Game.MONSTERS[id]["nome"].to_upper()
+	if int(m["id"]) != id:
+		label.text = "%s DESPERTOU: %s!" % [Game.MONSTERS[id]["nome"].to_upper(), Game.MONSTERS[m["id"]]["nome"].to_upper()]
+	else:
+		label.text = "%s DESPERTOU!" % Game.MONSTERS[id]["nome"].to_upper()
 	label.add_theme_color_override("font_color", gold)
 	label.pivot_offset = Vector2(320, 12) * K
 	label.scale = Vector2(0.4, 0.4)

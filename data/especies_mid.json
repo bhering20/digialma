@@ -1,0 +1,1235 @@
+{
+ "nota": "Espécies do mid game e formas novas das espécies antigas. \"evo_base\" liga as espécies originais (ids do jogo) às formas novas.",
+ "evo_base": {
+  "16": [
+   151,
+   26
+  ],
+  "4": [
+   154,
+   16
+  ],
+  "5": [
+   158,
+   14
+  ],
+  "6": [
+   162,
+   20
+  ],
+  "10": [
+   166,
+   20
+  ],
+  "11": [
+   170,
+   18
+  ]
+ },
+ "especies": [
+  {
+   "id": 101,
+   "nome": "Fuligim",
+   "tipo": "Fumaça",
+   "k": 1.05,
+   "perf": [
+    1.0,
+    0.95,
+    1.05
+   ],
+   "jeito": "tímido",
+   "forma": "1",
+   "mapa": 3,
+   "linha": "fumaca",
+   "evo": [
+    102,
+    61
+   ]
+  },
+  {
+   "id": 102,
+   "nome": "Nébulo",
+   "tipo": "Fumaça",
+   "k": 1.3,
+   "perf": [
+    1.0,
+    0.95,
+    1.05
+   ],
+   "jeito": "misterioso",
+   "forma": "2",
+   "mapa": 3,
+   "linha": "fumaca",
+   "evo": [
+    103,
+    71
+   ]
+  },
+  {
+   "id": 103,
+   "nome": "Chaminéus",
+   "tipo": "Fumaça",
+   "k": 1.55,
+   "perf": [
+    1.0,
+    0.95,
+    1.05
+   ],
+   "jeito": "abafado",
+   "forma": "3",
+   "mapa": 3,
+   "linha": "fumaca",
+   "desperta": 104
+  },
+  {
+   "id": 104,
+   "nome": "Brumath",
+   "tipo": "Fumaça",
+   "k": 1.6,
+   "perf": [
+    1.0,
+    0.95,
+    1.05
+   ],
+   "jeito": "ancestral",
+   "forma": "D",
+   "mapa": 3,
+   "linha": "fumaca",
+   "ascende": 105
+  },
+  {
+   "id": 105,
+   "nome": "Cinzaroth",
+   "tipo": "Fumaça",
+   "k": 1.9,
+   "perf": [
+    1.0,
+    0.95,
+    1.05
+   ],
+   "jeito": "implacável",
+   "forma": "A",
+   "mapa": 3,
+   "linha": "fumaca"
+  },
+  {
+   "id": 106,
+   "nome": "Rebitinho",
+   "tipo": "Metal",
+   "k": 1.05,
+   "perf": [
+    1.0,
+    0.95,
+    1.2
+   ],
+   "jeito": "teimoso",
+   "forma": "1",
+   "mapa": 4,
+   "linha": "metal",
+   "evo": [
+    107,
+    79
+   ]
+  },
+  {
+   "id": 107,
+   "nome": "Ferromite",
+   "tipo": "Metal",
+   "k": 1.3,
+   "perf": [
+    1.0,
+    0.95,
+    1.2
+   ],
+   "jeito": "disciplinado",
+   "forma": "2",
+   "mapa": 4,
+   "linha": "metal",
+   "evo": [
+    108,
+    89
+   ]
+  },
+  {
+   "id": 108,
+   "nome": "Cromovale",
+   "tipo": "Metal",
+   "k": 1.55,
+   "perf": [
+    1.0,
+    0.95,
+    1.2
+   ],
+   "jeito": "leal",
+   "forma": "3",
+   "mapa": 4,
+   "linha": "metal",
+   "desperta": 109
+  },
+  {
+   "id": 109,
+   "nome": "Titânex",
+   "tipo": "Metal",
+   "k": 1.6,
+   "perf": [
+    1.0,
+    0.95,
+    1.2
+   ],
+   "jeito": "inabalável",
+   "forma": "D",
+   "mapa": 4,
+   "linha": "metal",
+   "ascende": 110
+  },
+  {
+   "id": 110,
+   "nome": "Aethelferrum",
+   "tipo": "Metal",
+   "k": 1.9,
+   "perf": [
+    1.0,
+    0.95,
+    1.2
+   ],
+   "jeito": "soberano",
+   "forma": "A",
+   "mapa": 4,
+   "linha": "metal"
+  },
+  {
+   "id": 111,
+   "nome": "Ácidim",
+   "tipo": "Ácido",
+   "k": 1.05,
+   "perf": [
+    1.05,
+    1.1,
+    0.9
+   ],
+   "jeito": "guloso",
+   "forma": "1",
+   "mapa": 3,
+   "linha": "acido",
+   "evo": [
+    112,
+    61
+   ]
+  },
+  {
+   "id": 112,
+   "nome": "Corroto",
+   "tipo": "Ácido",
+   "k": 1.3,
+   "perf": [
+    1.05,
+    1.1,
+    0.9
+   ],
+   "jeito": "rabugento",
+   "forma": "2",
+   "mapa": 3,
+   "linha": "acido",
+   "evo": [
+    113,
+    71
+   ]
+  },
+  {
+   "id": 113,
+   "nome": "Sulfurax",
+   "tipo": "Ácido",
+   "k": 1.55,
+   "perf": [
+    1.05,
+    1.1,
+    0.9
+   ],
+   "jeito": "ardiloso",
+   "forma": "3",
+   "mapa": 3,
+   "linha": "acido",
+   "desperta": 114
+  },
+  {
+   "id": 114,
+   "nome": "Cáustikron",
+   "tipo": "Ácido",
+   "k": 1.6,
+   "perf": [
+    1.05,
+    1.1,
+    0.9
+   ],
+   "jeito": "corrosivo",
+   "forma": "D",
+   "mapa": 3,
+   "linha": "acido",
+   "ascende": 115
+  },
+  {
+   "id": 115,
+   "nome": "Abissálkali",
+   "tipo": "Ácido",
+   "k": 1.9,
+   "perf": [
+    1.05,
+    1.1,
+    0.9
+   ],
+   "jeito": "abissal",
+   "forma": "A",
+   "mapa": 3,
+   "linha": "acido"
+  },
+  {
+   "id": 116,
+   "nome": "Nulim",
+   "tipo": "Vácuo",
+   "k": 1.05,
+   "perf": [
+    0.95,
+    1.15,
+    0.95
+   ],
+   "jeito": "calado",
+   "forma": "1",
+   "mapa": 5,
+   "linha": "vacuo",
+   "evo": [
+    117,
+    97
+   ]
+  },
+  {
+   "id": 117,
+   "nome": "Ecomite",
+   "tipo": "Vácuo",
+   "k": 1.3,
+   "perf": [
+    0.95,
+    1.15,
+    0.95
+   ],
+   "jeito": "distraído",
+   "forma": "2",
+   "mapa": 5,
+   "linha": "vacuo",
+   "evo": [
+    118,
+    107
+   ]
+  },
+  {
+   "id": 118,
+   "nome": "Horizón",
+   "tipo": "Vácuo",
+   "k": 1.55,
+   "perf": [
+    0.95,
+    1.15,
+    0.95
+   ],
+   "jeito": "frio",
+   "forma": "3",
+   "mapa": 5,
+   "linha": "vacuo",
+   "desperta": 119
+  },
+  {
+   "id": 119,
+   "nome": "Singularix",
+   "tipo": "Vácuo",
+   "k": 1.6,
+   "perf": [
+    0.95,
+    1.15,
+    0.95
+   ],
+   "jeito": "infinito",
+   "forma": "D",
+   "mapa": 5,
+   "linha": "vacuo",
+   "ascende": 120
+  },
+  {
+   "id": 120,
+   "nome": "Étervoro",
+   "tipo": "Vácuo",
+   "k": 1.9,
+   "perf": [
+    0.95,
+    1.15,
+    0.95
+   ],
+   "jeito": "insaciável",
+   "forma": "A",
+   "mapa": 5,
+   "linha": "vacuo"
+  },
+  {
+   "id": 121,
+   "nome": "Íoninho",
+   "tipo": "Plasma",
+   "k": 1.05,
+   "perf": [
+    0.9,
+    1.25,
+    0.9
+   ],
+   "jeito": "elétrico",
+   "forma": "1",
+   "mapa": 4,
+   "linha": "plasma",
+   "evo": [
+    122,
+    79
+   ]
+  },
+  {
+   "id": 122,
+   "nome": "Arcoíbis",
+   "tipo": "Plasma",
+   "k": 1.3,
+   "perf": [
+    0.9,
+    1.25,
+    0.9
+   ],
+   "jeito": "vaidoso",
+   "forma": "2",
+   "mapa": 4,
+   "linha": "plasma",
+   "evo": [
+    123,
+    89
+   ]
+  },
+  {
+   "id": 123,
+   "nome": "Plasmandar",
+   "tipo": "Plasma",
+   "k": 1.55,
+   "perf": [
+    0.9,
+    1.25,
+    0.9
+   ],
+   "jeito": "explosivo",
+   "forma": "3",
+   "mapa": 4,
+   "linha": "plasma",
+   "desperta": 124
+  },
+  {
+   "id": 124,
+   "nome": "Solarix",
+   "tipo": "Plasma",
+   "k": 1.6,
+   "perf": [
+    0.9,
+    1.25,
+    0.9
+   ],
+   "jeito": "radiante",
+   "forma": "D",
+   "mapa": 4,
+   "linha": "plasma",
+   "ascende": 125
+  },
+  {
+   "id": 125,
+   "nome": "Supernovar",
+   "tipo": "Plasma",
+   "k": 1.9,
+   "perf": [
+    0.9,
+    1.25,
+    0.9
+   ],
+   "jeito": "incontrolável",
+   "forma": "A",
+   "mapa": 4,
+   "linha": "plasma"
+  },
+  {
+   "id": 126,
+   "nome": "Seixim",
+   "tipo": "Gravidade",
+   "k": 1.05,
+   "perf": [
+    1.15,
+    1.0,
+    1.1
+   ],
+   "jeito": "pesado",
+   "forma": "1",
+   "mapa": 5,
+   "linha": "gravidade",
+   "evo": [
+    127,
+    97
+   ]
+  },
+  {
+   "id": 127,
+   "nome": "Satelídeo",
+   "tipo": "Gravidade",
+   "k": 1.3,
+   "perf": [
+    1.15,
+    1.0,
+    1.1
+   ],
+   "jeito": "paciente",
+   "forma": "2",
+   "mapa": 5,
+   "linha": "gravidade",
+   "evo": [
+    128,
+    107
+   ]
+  },
+  {
+   "id": 128,
+   "nome": "Orbiton",
+   "tipo": "Gravidade",
+   "k": 1.55,
+   "perf": [
+    1.15,
+    1.0,
+    1.1
+   ],
+   "jeito": "orbitante",
+   "forma": "3",
+   "mapa": 5,
+   "linha": "gravidade",
+   "desperta": 129
+  },
+  {
+   "id": 129,
+   "nome": "Pulsarius",
+   "tipo": "Gravidade",
+   "k": 1.6,
+   "perf": [
+    1.15,
+    1.0,
+    1.1
+   ],
+   "jeito": "denso",
+   "forma": "D",
+   "mapa": 5,
+   "linha": "gravidade",
+   "ascende": 130
+  },
+  {
+   "id": 130,
+   "nome": "KerrOmega",
+   "tipo": "Gravidade",
+   "k": 1.9,
+   "perf": [
+    1.15,
+    1.0,
+    1.1
+   ],
+   "jeito": "absoluto",
+   "forma": "A",
+   "mapa": 5,
+   "linha": "gravidade"
+  },
+  {
+   "id": 131,
+   "nome": "BitErro",
+   "tipo": "Glitch",
+   "k": 1.05,
+   "perf": [
+    0.95,
+    1.2,
+    0.9
+   ],
+   "jeito": "bugado",
+   "forma": "1",
+   "mapa": 4,
+   "linha": "glitch",
+   "evo": [
+    132,
+    79
+   ]
+  },
+  {
+   "id": 132,
+   "nome": "Bugling",
+   "tipo": "Glitch",
+   "k": 1.3,
+   "perf": [
+    0.95,
+    1.2,
+    0.9
+   ],
+   "jeito": "travesso",
+   "forma": "2",
+   "mapa": 4,
+   "linha": "glitch",
+   "evo": [
+    133,
+    89
+   ]
+  },
+  {
+   "id": 133,
+   "nome": "Kernel404",
+   "tipo": "Glitch",
+   "k": 1.55,
+   "perf": [
+    0.95,
+    1.2,
+    0.9
+   ],
+   "jeito": "imprevisível",
+   "forma": "3",
+   "mapa": 4,
+   "linha": "glitch",
+   "desperta": 134
+  },
+  {
+   "id": 134,
+   "nome": "TelAzul",
+   "tipo": "Glitch",
+   "k": 1.6,
+   "perf": [
+    0.95,
+    1.2,
+    0.9
+   ],
+   "jeito": "travado",
+   "forma": "D",
+   "mapa": 4,
+   "linha": "glitch",
+   "ascende": 135
+  },
+  {
+   "id": 135,
+   "nome": "Y2Kaos",
+   "tipo": "Glitch",
+   "k": 1.9,
+   "perf": [
+    0.95,
+    1.2,
+    0.9
+   ],
+   "jeito": "caótico",
+   "forma": "A",
+   "mapa": 4,
+   "linha": "glitch"
+  },
+  {
+   "id": 136,
+   "nome": "Sinim",
+   "tipo": "Som",
+   "k": 1.05,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "barulhento",
+   "forma": "1",
+   "mapa": 3,
+   "linha": "som",
+   "evo": [
+    137,
+    61
+   ]
+  },
+  {
+   "id": 137,
+   "nome": "Decibelio",
+   "tipo": "Som",
+   "k": 1.3,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "afinado",
+   "forma": "2",
+   "mapa": 3,
+   "linha": "som",
+   "evo": [
+    138,
+    71
+   ]
+  },
+  {
+   "id": 138,
+   "nome": "Maestrix",
+   "tipo": "Som",
+   "k": 1.55,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "maestro",
+   "forma": "3",
+   "mapa": 3,
+   "linha": "som",
+   "desperta": 139
+  },
+  {
+   "id": 139,
+   "nome": "Ultrasom",
+   "tipo": "Som",
+   "k": 1.6,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "agudo",
+   "forma": "D",
+   "mapa": 3,
+   "linha": "som",
+   "ascende": 140
+  },
+  {
+   "id": 140,
+   "nome": "RessoTitã",
+   "tipo": "Som",
+   "k": 1.9,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "retumbante",
+   "forma": "A",
+   "mapa": 3,
+   "linha": "som"
+  },
+  {
+   "id": 141,
+   "nome": "GrãoZero",
+   "tipo": "Tempo",
+   "k": 1.05,
+   "perf": [
+    1.05,
+    1.05,
+    1.05
+   ],
+   "jeito": "adiantado",
+   "forma": "1",
+   "mapa": 5,
+   "linha": "tempo",
+   "evo": [
+    142,
+    97
+   ]
+  },
+  {
+   "id": 142,
+   "nome": "Pêndulin",
+   "tipo": "Tempo",
+   "k": 1.3,
+   "perf": [
+    1.05,
+    1.05,
+    1.05
+   ],
+   "jeito": "metódico",
+   "forma": "2",
+   "mapa": 5,
+   "linha": "tempo",
+   "evo": [
+    143,
+    107
+   ]
+  },
+  {
+   "id": 143,
+   "nome": "Cronovale",
+   "tipo": "Tempo",
+   "k": 1.55,
+   "perf": [
+    1.05,
+    1.05,
+    1.05
+   ],
+   "jeito": "pontual",
+   "forma": "3",
+   "mapa": 5,
+   "linha": "tempo",
+   "desperta": 144
+  },
+  {
+   "id": 144,
+   "nome": "Atemporal",
+   "tipo": "Tempo",
+   "k": 1.6,
+   "perf": [
+    1.05,
+    1.05,
+    1.05
+   ],
+   "jeito": "eterno",
+   "forma": "D",
+   "mapa": 5,
+   "linha": "tempo",
+   "ascende": 145
+  },
+  {
+   "id": 145,
+   "nome": "Eternion",
+   "tipo": "Tempo",
+   "k": 1.9,
+   "perf": [
+    1.05,
+    1.05,
+    1.05
+   ],
+   "jeito": "atemporal",
+   "forma": "A",
+   "mapa": 5,
+   "linha": "tempo"
+  },
+  {
+   "id": 146,
+   "nome": "Caquinho",
+   "tipo": "Espelho",
+   "k": 1.05,
+   "perf": [
+    0.95,
+    1.0,
+    1.15
+   ],
+   "jeito": "curioso",
+   "forma": "1",
+   "mapa": 5,
+   "linha": "espelho",
+   "evo": [
+    147,
+    97
+   ]
+  },
+  {
+   "id": 147,
+   "nome": "Refléxio",
+   "tipo": "Espelho",
+   "k": 1.3,
+   "perf": [
+    0.95,
+    1.0,
+    1.15
+   ],
+   "jeito": "vaidoso",
+   "forma": "2",
+   "mapa": 5,
+   "linha": "espelho",
+   "evo": [
+    148,
+    107
+   ]
+  },
+  {
+   "id": 148,
+   "nome": "Prismurai",
+   "tipo": "Espelho",
+   "k": 1.55,
+   "perf": [
+    0.95,
+    1.0,
+    1.15
+   ],
+   "jeito": "elegante",
+   "forma": "3",
+   "mapa": 5,
+   "linha": "espelho",
+   "desperta": 149
+  },
+  {
+   "id": 149,
+   "nome": "Caleidofênix",
+   "tipo": "Espelho",
+   "k": 1.6,
+   "perf": [
+    0.95,
+    1.0,
+    1.15
+   ],
+   "jeito": "deslumbrante",
+   "forma": "D",
+   "mapa": 5,
+   "linha": "espelho",
+   "ascende": 150
+  },
+  {
+   "id": 150,
+   "nome": "LuminaSpec",
+   "tipo": "Espelho",
+   "k": 1.9,
+   "perf": [
+    0.95,
+    1.0,
+    1.15
+   ],
+   "jeito": "luminoso",
+   "forma": "A",
+   "mapa": 5,
+   "linha": "espelho"
+  },
+  {
+   "id": 151,
+   "nome": "Odonarca",
+   "tipo": "Inseto",
+   "k": 1.55,
+   "perf": [
+    0.95,
+    1.1,
+    1.0
+   ],
+   "jeito": "confiante",
+   "forma": "3",
+   "linha": "larv",
+   "desperta": 152
+  },
+  {
+   "id": 152,
+   "nome": "Prismantis",
+   "tipo": "Inseto",
+   "k": 1.6,
+   "perf": [
+    0.95,
+    1.1,
+    1.0
+   ],
+   "jeito": "majestoso",
+   "forma": "D",
+   "linha": "larv",
+   "ascende": 153
+  },
+  {
+   "id": 153,
+   "nome": "Auralíbula",
+   "tipo": "Inseto",
+   "k": 1.9,
+   "perf": [
+    0.95,
+    1.1,
+    1.0
+   ],
+   "jeito": "lendário",
+   "forma": "A",
+   "linha": "larv"
+  },
+  {
+   "id": 154,
+   "nome": "Capitrovo",
+   "tipo": "Normal",
+   "k": 1.3,
+   "perf": [
+    1.2,
+    0.95,
+    1.1
+   ],
+   "jeito": "animado",
+   "forma": "2",
+   "linha": "capi",
+   "evo": [
+    155,
+    28
+   ]
+  },
+  {
+   "id": 155,
+   "nome": "Capitrovão",
+   "tipo": "Normal",
+   "k": 1.55,
+   "perf": [
+    1.2,
+    0.95,
+    1.1
+   ],
+   "jeito": "confiante",
+   "forma": "3",
+   "linha": "capi",
+   "desperta": 156
+  },
+  {
+   "id": 156,
+   "nome": "Capibarão",
+   "tipo": "Normal",
+   "k": 1.6,
+   "perf": [
+    1.2,
+    0.95,
+    1.1
+   ],
+   "jeito": "majestoso",
+   "forma": "D",
+   "linha": "capi",
+   "ascende": 157
+  },
+  {
+   "id": 157,
+   "nome": "Capirei",
+   "tipo": "Normal",
+   "k": 1.9,
+   "perf": [
+    1.2,
+    0.95,
+    1.1
+   ],
+   "jeito": "lendário",
+   "forma": "A",
+   "linha": "capi"
+  },
+  {
+   "id": 158,
+   "nome": "Piupena",
+   "tipo": "Voador",
+   "k": 1.3,
+   "perf": [
+    0.95,
+    1.1,
+    0.9
+   ],
+   "jeito": "animado",
+   "forma": "2",
+   "linha": "piui",
+   "evo": [
+    159,
+    26
+   ]
+  },
+  {
+   "id": 159,
+   "nome": "Ventaurio",
+   "tipo": "Voador",
+   "k": 1.55,
+   "perf": [
+    0.95,
+    1.1,
+    0.9
+   ],
+   "jeito": "confiante",
+   "forma": "3",
+   "linha": "piui",
+   "desperta": 160
+  },
+  {
+   "id": 160,
+   "nome": "Tempestrix",
+   "tipo": "Voador",
+   "k": 1.6,
+   "perf": [
+    0.95,
+    1.1,
+    0.9
+   ],
+   "jeito": "majestoso",
+   "forma": "D",
+   "linha": "piui",
+   "ascende": 161
+  },
+  {
+   "id": 161,
+   "nome": "Céulume",
+   "tipo": "Voador",
+   "k": 1.9,
+   "perf": [
+    0.95,
+    1.1,
+    0.9
+   ],
+   "jeito": "lendário",
+   "forma": "A",
+   "linha": "piui"
+  },
+  {
+   "id": 162,
+   "nome": "Cervonix",
+   "tipo": "Gelo",
+   "k": 1.3,
+   "perf": [
+    1.1,
+    1.1,
+    1.05
+   ],
+   "jeito": "animado",
+   "forma": "2",
+   "linha": "cerv",
+   "evo": [
+    163,
+    32
+   ]
+  },
+  {
+   "id": 163,
+   "nome": "Glaciervo",
+   "tipo": "Gelo",
+   "k": 1.55,
+   "perf": [
+    1.1,
+    1.1,
+    1.05
+   ],
+   "jeito": "confiante",
+   "forma": "3",
+   "linha": "cerv",
+   "desperta": 164
+  },
+  {
+   "id": 164,
+   "nome": "Auroralce",
+   "tipo": "Gelo",
+   "k": 1.6,
+   "perf": [
+    1.1,
+    1.1,
+    1.05
+   ],
+   "jeito": "majestoso",
+   "forma": "D",
+   "linha": "cerv",
+   "ascende": 165
+  },
+  {
+   "id": 165,
+   "nome": "Invernal",
+   "tipo": "Gelo",
+   "k": 1.9,
+   "perf": [
+    1.1,
+    1.1,
+    1.05
+   ],
+   "jeito": "lendário",
+   "forma": "A",
+   "linha": "cerv"
+  },
+  {
+   "id": 166,
+   "nome": "Sonhanta",
+   "tipo": "Psíquico",
+   "k": 1.3,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "animado",
+   "forma": "2",
+   "linha": "sonh",
+   "evo": [
+    167,
+    32
+   ]
+  },
+  {
+   "id": 167,
+   "nome": "Oniranta",
+   "tipo": "Psíquico",
+   "k": 1.55,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "confiante",
+   "forma": "3",
+   "linha": "sonh",
+   "desperta": 168
+  },
+  {
+   "id": 168,
+   "nome": "Sonharca",
+   "tipo": "Psíquico",
+   "k": 1.6,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "majestoso",
+   "forma": "D",
+   "linha": "sonh",
+   "ascende": 169
+  },
+  {
+   "id": 169,
+   "nome": "Morfélio",
+   "tipo": "Psíquico",
+   "k": 1.9,
+   "perf": [
+    1.0,
+    1.1,
+    0.95
+   ],
+   "jeito": "lendário",
+   "forma": "A",
+   "linha": "sonh"
+  },
+  {
+   "id": 170,
+   "nome": "Voltaserpe",
+   "tipo": "Elétrico",
+   "k": 1.3,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "animado",
+   "forma": "2",
+   "linha": "serp",
+   "evo": [
+    171,
+    30
+   ]
+  },
+  {
+   "id": 171,
+   "nome": "Trovaconda",
+   "tipo": "Elétrico",
+   "k": 1.55,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "confiante",
+   "forma": "3",
+   "linha": "serp",
+   "desperta": 172
+  },
+  {
+   "id": 172,
+   "nome": "Fulgorath",
+   "tipo": "Elétrico",
+   "k": 1.6,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "majestoso",
+   "forma": "D",
+   "linha": "serp",
+   "ascende": 173
+  },
+  {
+   "id": 173,
+   "nome": "Tempestrion",
+   "tipo": "Elétrico",
+   "k": 1.9,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "lendário",
+   "forma": "A",
+   "linha": "serp"
+  }
+ ]
+}

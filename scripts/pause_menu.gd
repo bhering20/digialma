@@ -92,7 +92,7 @@ func _build_card() -> void:
 		s.add_theme_stylebox_override("panel", Game.sb("slot_sel" if i < Game.badges else "slot", 5))
 		s.custom_minimum_size = Vector2(52, 30)
 		var st := TextureRect.new()
-		if i < 3:
+		if i < Game.REGIONS.size():
 			st.texture = Game.tex("res://assets/badges/%s.png" % Game.REGIONS[i]["lider"]["badge"])
 			st.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			st.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

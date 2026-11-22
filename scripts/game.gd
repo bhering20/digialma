@@ -61,8 +61,8 @@ const PATTERNS := {
 ## Golpes especiais custam Energia (ataques normais e aparos geram).
 const ENERGY_COST := 3
 const ENERGY_MAX := 5
-const TYPE_SPECIAL := {"Pedra": "avalanche", "Metal": "martelo", "Sombra": "eclipse", "Luz": "aurora", "Veneno": "nevoa_toxica", "Som": "sinfonia", "Cristal": "prisma", "Normal": "impacto", "Voador": "furacao", "Gelo": "nevasca", "Psíquico": "pesadelo", "Elétrico": "trovao", "Inseto": "enxame", "Fogo": "erupcao", "Água": "tsunami", "Planta": "floresta"}
-const TYPE_SUPREME := {"Pedra": "terremoto", "Metal": "forja", "Sombra": "noite_eterna", "Luz": "sol_nascente", "Veneno": "praga", "Som": "estrondo", "Cristal": "caleidoscopio", "Fogo": "supernova", "Água": "abismo", "Planta": "ancestral", "Normal": "impacto_final", "Voador": "ceu_partido", "Gelo": "zero_absoluto", "Psíquico": "sonho_eterno", "Elétrico": "tempestade", "Inseto": "colmeia"}
+const TYPE_SPECIAL := {"Pedra": "avalanche", "Metal": "martelo", "Sombra": "eclipse", "Luz": "aurora", "Veneno": "nevoa_toxica", "Som": "sinfonia", "Cristal": "prisma", "Normal": "impacto", "Voador": "furacao", "Gelo": "nevasca", "Psíquico": "pesadelo", "Elétrico": "trovao", "Inseto": "enxame", "Fogo": "erupcao", "Água": "tsunami", "Planta": "floresta", "Fumaça": "nuvem_negra", "Ácido": "corrosao", "Vácuo": "colapso", "Plasma": "arco_voltaico", "Gravidade": "orbita", "Glitch": "tela_azul", "Tempo": "rebobinar", "Espelho": "prisma_cego"}
+const TYPE_SUPREME := {"Pedra": "terremoto", "Metal": "forja", "Sombra": "noite_eterna", "Luz": "sol_nascente", "Veneno": "praga", "Som": "estrondo", "Cristal": "caleidoscopio", "Fogo": "supernova", "Água": "abismo", "Planta": "ancestral", "Normal": "impacto_final", "Voador": "ceu_partido", "Gelo": "zero_absoluto", "Psíquico": "sonho_eterno", "Elétrico": "tempestade", "Inseto": "colmeia", "Fumaça": "cinza_eterna", "Ácido": "chuva_acida", "Vácuo": "nada_absoluto", "Plasma": "tempestade_solar", "Gravidade": "buraco_negro", "Glitch": "falha_total", "Tempo": "parada_temporal", "Espelho": "mil_espelhos"}
 
 ## ÁRVORE DE ALMA: cada Digialma ganha 1 Ponto de Alma (PA) por nível.
 ## Teia de 15 nós: CENTELHA no centro, FÚRIA à esquerda, GUARDA à direita,
@@ -114,7 +114,10 @@ var elo_up := {}
 ## Sprites próprios (fora do pacote): ramos de evolução recoloridos.
 const CUSTOM_SPRITES := {17: "res://assets/monsters/sprite17_%s.png", 18: "res://assets/monsters/sprite18_%s.png"}
 ## Animações novas (geradas com IA e tratadas em pixel art): substituem/acrescentam às do pacote.
-const EXTRA_ANIMS := {9: {"walk": "res://assets/monsters/sprite9_walk.png", "attack": "res://assets/monsters/sprite9_attack2.png"}}
+const EXTRA_ANIMS := {9: {"walk": "res://assets/monsters/sprite9_walk.png", "attack": "res://assets/monsters/sprite9_attack2.png"},
+	4: {"walk": "res://assets/monsters/sprite4_walk.png"}, 5: {"walk": "res://assets/monsters/sprite5_walk.png"}, 6: {"walk": "res://assets/monsters/sprite6_walk.png"},
+	10: {"walk": "res://assets/monsters/sprite10_walk.png"}, 11: {"walk": "res://assets/monsters/sprite11_walk.png"},
+	15: {"walk": "res://assets/monsters/sprite15_walk.png"}, 16: {"walk": "res://assets/monsters/sprite16_walk.png"}}
 
 
 func foot_offset(id: int) -> Vector2:
@@ -157,6 +160,31 @@ const MOVES := {
 	"ruido": {"nome": "Explosão de Ruído", "tipo": "Normal", "poder": 26, "fx": "explosion", "kind": "projetil", "cd": 0},
 	"picada": {"nome": "Picada", "tipo": "Inseto", "poder": 12, "fx": "scratch", "kind": "contato", "cd": 0},
 	# NOVOS ELEMENTOS (mid/end game): básico, especial e supremo
+	# ELEMENTOS DO MID GAME: básico, especial e supremo
+	"fuligem": {"nome": "Fuligem", "tipo": "Fumaça", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
+	"nuvem_negra": {"nome": "Nuvem Negra", "tipo": "Fumaça", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"cinza_eterna": {"nome": "Cinza Eterna", "tipo": "Fumaça", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"respingo": {"nome": "Respingo Ácido", "tipo": "Ácido", "poder": 13, "fx": "splash", "kind": "projetil", "cd": 0},
+	"corrosao": {"nome": "Corrosão", "tipo": "Ácido", "poder": 22, "fx": "green", "kind": "projetil", "cd": 2},
+	"chuva_acida": {"nome": "Chuva Ácida", "tipo": "Ácido", "poder": 32, "fx": "splash", "kind": "projetil", "cd": 3, "supremo": true},
+	"sopro_vazio": {"nome": "Sopro do Vazio", "tipo": "Vácuo", "poder": 13, "fx": "scratch", "kind": "projetil", "cd": 0},
+	"colapso": {"nome": "Colapso", "tipo": "Vácuo", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"nada_absoluto": {"nome": "Nada Absoluto", "tipo": "Vácuo", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"ionizar": {"nome": "Ionizar", "tipo": "Plasma", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
+	"arco_voltaico": {"nome": "Arco Voltaico", "tipo": "Plasma", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"tempestade_solar": {"nome": "Tempestade Solar", "tipo": "Plasma", "poder": 32, "fx": "fire", "kind": "projetil", "cd": 3, "supremo": true},
+	"peso_subito": {"nome": "Peso Súbito", "tipo": "Gravidade", "poder": 13, "fx": "explosion", "kind": "contato", "cd": 0},
+	"orbita": {"nome": "Órbita Esmagadora", "tipo": "Gravidade", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
+	"buraco_negro": {"nome": "Buraco Negro", "tipo": "Gravidade", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"bug": {"nome": "Bug", "tipo": "Glitch", "poder": 13, "fx": "scratch", "kind": "contato", "cd": 0},
+	"tela_azul": {"nome": "Tela Azul", "tipo": "Glitch", "poder": 22, "fx": "ice", "kind": "projetil", "cd": 2},
+	"falha_total": {"nome": "Falha Total", "tipo": "Glitch", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
+	"tique_taque": {"nome": "Tique-Taque", "tipo": "Tempo", "poder": 13, "fx": "scratch", "kind": "contato", "cd": 0},
+	"rebobinar": {"nome": "Rebobinar", "tipo": "Tempo", "poder": 22, "fx": "ice", "kind": "projetil", "cd": 2},
+	"parada_temporal": {"nome": "Parada Temporal", "tipo": "Tempo", "poder": 32, "fx": "ice", "kind": "projetil", "cd": 3, "supremo": true},
+	"reflexo": {"nome": "Reflexo", "tipo": "Espelho", "poder": 13, "fx": "ice", "kind": "projetil", "cd": 0},
+	"prisma_cego": {"nome": "Prisma Cego", "tipo": "Espelho", "poder": 22, "fx": "ice", "kind": "projetil", "cd": 2},
+	"mil_espelhos": {"nome": "Mil Espelhos", "tipo": "Espelho", "poder": 32, "fx": "ice", "kind": "projetil", "cd": 3, "supremo": true},
 	"pedrada": {"nome": "Pedrada", "tipo": "Pedra", "poder": 13, "fx": "explosion", "kind": "projetil", "cd": 0},
 	"avalanche": {"nome": "Avalanche", "tipo": "Pedra", "poder": 22, "fx": "explosion", "kind": "projetil", "cd": 2},
 	"terremoto": {"nome": "Terremoto", "tipo": "Pedra", "poder": 32, "fx": "explosion", "kind": "projetil", "cd": 3, "supremo": true},
@@ -193,14 +221,15 @@ const TYPE_COLORS := {"Normal": Color("e8e0d0"), "Fogo": Color("ff7a3d"), "Água
 	"Voador": Color("e0a0c0"), "Gelo": Color("9ae0ff"), "Psíquico": Color("c080ff"), "Elétrico": Color("ffd84a"), "Inseto": Color("a0e070"),
 	"Vapor": Color("f4c0d0"), "Plasma": Color("ff5ad8"), "Tormenta": Color("7a8aff"), "Pântano": Color("8a9a4a"), "Nevasca": Color("d8f4ff"),
 	"Bioluz": Color("6affb8"), "Fogo-fátuo": Color("5ad8ff"), "Geleira": Color("6ac8e8"), "Astral": Color("b8a0ff"),
-	"Pedra": Color("b89a6a"), "Metal": Color("a8b8c8"), "Sombra": Color("6a4a9a"), "Luz": Color("fff0a0"), "Veneno": Color("b060d0"), "Som": Color("ff9ac8"), "Cristal": Color("8af0f0")}
+	"Pedra": Color("b89a6a"), "Metal": Color("a8b8c8"), "Sombra": Color("6a4a9a"), "Luz": Color("fff0a0"), "Veneno": Color("b060d0"), "Som": Color("ff9ac8"), "Cristal": Color("8af0f0"),
+	"Fumaça": Color("a8a0b0"), "Ácido": Color("c8f04a"), "Vácuo": Color("7a6ad8"), "Gravidade": Color("c89a6a"), "Glitch": Color("3af0d0"), "Tempo": Color("e8c870"), "Espelho": Color("e8ecff")}
 
 ## ELEMENTOS HÍBRIDOS: a Fusão de Essência entre dois tipos que combinam
 ## cria um elemento novo (Água + Fogo = Vapor). Cada um tem golpe próprio e
 ## explora fraquezas que nenhum dos pais cobria sozinho. Nunca é "fraco".
 const HYBRIDS := {
 	"Vapor": {"de": ["Fogo", "Água"], "golpe": "h_vapor", "fortes": ["Fogo", "Gelo", "Planta", "Inseto"], "desc": "água fervendo"},
-	"Plasma": {"de": ["Fogo", "Elétrico"], "golpe": "h_plasma", "fortes": ["Água", "Voador", "Gelo", "Planta"], "desc": "fogo eletrizado"},
+	"Plasma": {"de": ["Fogo", "Elétrico"], "golpe": "h_plasma", "fortes": ["Metal", "Vácuo", "Gelo"], "desc": "fogo eletrizado"},
 	"Tormenta": {"de": ["Água", "Elétrico"], "golpe": "h_tormenta", "fortes": ["Fogo", "Água", "Voador"], "desc": "tempestade viva"},
 	"Pântano": {"de": ["Água", "Planta"], "golpe": "h_pantano", "fortes": ["Fogo", "Elétrico", "Água"], "desc": "lama que respira"},
 	"Nevasca": {"de": ["Gelo", "Voador"], "golpe": "h_nevasca", "fortes": ["Planta", "Voador", "Inseto"], "desc": "vento congelante"},
@@ -211,7 +240,8 @@ const HYBRIDS := {
 }
 const TYPE_SLUG := {"Normal": "normal", "Fogo": "fogo", "Água": "agua", "Planta": "planta", "Voador": "voador", "Gelo": "gelo", "Psíquico": "psiquico", "Elétrico": "eletrico", "Inseto": "inseto",
 	"Vapor": "vapor", "Plasma": "plasma", "Tormenta": "tormenta", "Pântano": "pantano", "Nevasca": "nevasca", "Bioluz": "bioluz", "Fogo-fátuo": "fatuo", "Geleira": "geleira", "Astral": "astral",
-	"Pedra": "pedra", "Metal": "metal", "Sombra": "sombra", "Luz": "luz", "Veneno": "veneno", "Som": "som", "Cristal": "cristal"}
+	"Pedra": "pedra", "Metal": "metal", "Sombra": "sombra", "Luz": "luz", "Veneno": "veneno", "Som": "som", "Cristal": "cristal",
+	"Fumaça": "fumaca", "Ácido": "acido", "Vácuo": "vacuo", "Gravidade": "gravidade", "Glitch": "glitch", "Tempo": "tempo", "Espelho": "espelho"}
 
 
 func hybrid_of(a: String, b: String) -> String:
@@ -229,11 +259,15 @@ func strong_vs(tp: String) -> Array:
 ## Golpe que a essência dá (híbrido ou o básico do tipo).
 func essence_move(ess: String) -> String:
 	return HYBRIDS[ess]["golpe"] if HYBRIDS.has(ess) else TYPE_BASIC[ess]
-const STRONG := {"Fogo": ["Planta", "Gelo", "Inseto", "Metal"], "Água": ["Fogo", "Pedra"], "Planta": ["Água", "Pedra"], "Elétrico": ["Água", "Voador", "Metal"],
-	"Gelo": ["Planta", "Voador"], "Voador": ["Planta", "Inseto"], "Inseto": ["Planta", "Psíquico"], "Psíquico": ["Veneno"],
+const STRONG := {"Fogo": ["Planta", "Gelo", "Inseto", "Metal"], "Água": ["Fogo", "Pedra", "Ácido", "Glitch"], "Planta": ["Água", "Pedra"], "Elétrico": ["Água", "Voador", "Metal"],
+	"Gelo": ["Planta", "Voador"], "Voador": ["Planta", "Inseto", "Fumaça"], "Inseto": ["Planta", "Psíquico"], "Psíquico": ["Veneno", "Gravidade"],
 	# novos elementos
-	"Pedra": ["Fogo", "Voador", "Gelo", "Inseto"], "Metal": ["Gelo", "Pedra", "Cristal"], "Sombra": ["Psíquico", "Som"],
-	"Luz": ["Sombra", "Veneno"], "Veneno": ["Planta", "Inseto"], "Som": ["Cristal", "Voador"], "Cristal": ["Sombra", "Elétrico"]}
+	"Pedra": ["Fogo", "Voador", "Gelo", "Inseto"], "Metal": ["Gelo", "Pedra", "Cristal", "Espelho"], "Sombra": ["Psíquico", "Som"],
+	"Luz": ["Sombra", "Veneno"], "Veneno": ["Planta", "Inseto"], "Som": ["Cristal", "Voador", "Espelho", "Glitch"], "Cristal": ["Sombra", "Elétrico"],
+	# elementos do mid game
+	"Fumaça": ["Planta", "Inseto", "Espelho"], "Ácido": ["Metal", "Pedra", "Planta"], "Vácuo": ["Fumaça", "Som", "Fogo"],
+	"Plasma": ["Metal", "Vácuo", "Gelo"], "Gravidade": ["Voador", "Vácuo", "Plasma"], "Glitch": ["Elétrico", "Metal", "Tempo"],
+	"Tempo": ["Gravidade", "Psíquico", "Ácido"], "Espelho": ["Plasma", "Luz", "Psíquico"]}
 
 # --- MAPAS E ZONAS DO IDLE (estilo Taskbar Hero)
 ## Cada região é um mapa com 10 zonas. Os Nefastos não param de vir; cada
@@ -242,17 +276,24 @@ const STRONG := {"Fogo": ["Planta", "Gelo", "Inseto", "Metal"], "Água": ["Fogo"
 ## pressionam o inicial: o Fogo sobra na Floresta, sofre na Costa (Água) e
 ## precisa de parceiros de outros tipos para seguir.
 const ZONES := 10
-const ZONE_LV := [4, 21, 37]  # nível mínimo na zona 1 de cada mapa
+const ZONE_LV := [4, 21, 37, 55, 73, 91]  # nível mínimo na zona 1 de cada mapa
 const ZONE_STEP := 2.0          # níveis a mais por zona
 const ZONE_POOLS := [
 	# Floresta: Planta/Inseto/Voador (bom para Fogo); no fim, a Água começa a aparecer
-	[[15, 1, 5, 4], [15, 16, 1, 2, 5], [16, 2, 3, 5, 12]],
+	[[15, 1, 5, 4], [15, 16, 1, 2, 5], [16, 2, 3, 5, 12, 154]],
 	# Costa: Água/Elétrico (castiga o Fogo)
-	[[12, 5, 15, 4], [12, 11, 13, 5], [13, 11, 14, 6]],
+	[[12, 5, 15, 4], [12, 11, 13, 5], [13, 11, 14, 6, 170]],
 	# Monte Brasa: Fogo/Gelo/Psíquico
-	[[7, 5, 11, 10], [8, 6, 10, 11], [8, 9, 6, 17, 18]],
+	[[7, 5, 11, 10], [8, 6, 10, 11], [8, 9, 6, 17, 18, 162, 166]],
+	# --- MID GAME ---
+	# Pântano Sombrio: Ácido/Fumaça/Som (o Sonhinho e o Serpentrão evoluídos vivem aqui)
+	[[111, 101, 136, 166], [111, 112, 102, 137, 101], [112, 113, 102, 103, 137, 138]],
+	# Ruínas de Cobre: Metal/Glitch/Plasma
+	[[106, 131, 121, 154], [106, 107, 131, 132, 122], [107, 108, 132, 133, 122, 123]],
+	# Deserto de Cristal: Vácuo/Gravidade/Tempo/Espelho
+	[[116, 126, 141, 146], [117, 127, 142, 147, 116], [118, 128, 143, 148, 117, 127]],
 ]
-const ZONE_RAROS := [[10, 16], [6, 10, 16], [6, 16, 10]]
+const ZONE_RAROS := [[10, 16], [6, 10, 16], [6, 16, 10, 158], [167, 171, 138], [155, 151, 133], [163, 159, 148]]
 ## Captura automática de raros no idle (quando você não clica a tempo).
 ## AUTO_RARE_BASE é a chance base; auto_rare_bonus fica pronto para itens
 ## futuros (ex.: um item que aumenta a chance).
@@ -303,6 +344,22 @@ const REGIONS := [
 		"lider": {"nome": "Ígneo", "sprite": "fire_boss", "time": [[6, 22, 2], [8, 23, 3], [9, 25, 3]], "insignia": "Insígnia Brasa", "badge": "brasa", "ginasio": "Santuário Cratera"},
 		"props": {"big": ["ruin_pillar", "ruin_pillar_broke", "ruin_pillar_broke_alt", "p:cristal"], "small": ["p:fenda", "p:pedrinha", "p:pedra"], "front": ["p:cristal", "p:pedra", "p:pedrinha"]}, "chao": "basalto", "prop_tint": Color(0.62, 0.42, 0.44),
 		"piso": [Color("4a1a14"), Color("6a2a1a"), Color("ff8a3d")]},
+	# --- MID GAME ---
+	{"nome": "Pântano Sombrio", "bg": "res://assets/backgrounds/pantano.png", "tint": Color(1, 1, 1),
+		"arena": "arena_pantano", "plataforma": "pantano", "selvagens": [111, 101, 136, 166], "raros": [167, 171], "nv": [57, 59],
+		"lider": {"nome": "Brumária", "sprite": "purple_girl", "time": [[103, 72, 2], [113, 73, 3], [138, 75, 3]], "insignia": "Insígnia Névoa", "badge": "nevoa", "ginasio": "Santuário Lodo Fundo"},
+		"props": {"big": ["teal_tree", "teal_tree_bushy", "p:junco", "teal_tree_small", "p:junco"], "small": ["p:bolha", "p:cogumelo", "p:junco", "p:pedrinha", "p:bolha"], "front": ["p:junco", "grass", "p:bolha"]}, "chao": "lodo", "prop_tint": Color(0.62, 0.6, 0.72),
+		"piso": [Color("1e2a22"), Color("2e3f30"), Color("b8e05a")]},
+	{"nome": "Ruínas de Cobre", "bg": "res://assets/backgrounds/ruinas.png", "tint": Color(1, 1, 1),
+		"arena": "arena_cobre", "plataforma": "cobre", "selvagens": [106, 131, 121, 154], "raros": [155, 151], "nv": [75, 77],
+		"lider": {"nome": "Bronzo", "sprite": "young_guy", "time": [[108, 90, 2], [133, 91, 3], [123, 93, 3]], "insignia": "Insígnia Engrenagem", "badge": "cobre", "ginasio": "Santuário Engrenagem Mestra"},
+		"props": {"big": ["ruin_pillar", "ruin_pillar_broke", "p:engrenagem", "ruin_gate", "ruin_pillar_broke_alt"], "small": ["p:cabo", "p:engrenagem", "p:pedrinha", "p:cabo"], "front": ["p:pedra", "p:engrenagem", "p:cabo"]}, "chao": "cobre", "prop_tint": Color(1.0, 0.78, 0.55),
+		"piso": [Color("3a2418"), Color("6a3f22"), Color("ffb060")]},
+	{"nome": "Deserto de Cristal", "bg": "res://assets/backgrounds/deserto.png", "tint": Color(1, 1, 1),
+		"arena": "arena_cristal", "plataforma": "cristal", "selvagens": [116, 126, 141, 146], "raros": [163, 159], "nv": [93, 95],
+		"lider": {"nome": "Lúmina", "sprite": "hat_girl", "time": [[128, 108, 3], [143, 109, 3], [148, 111, 4]], "insignia": "Insígnia Prisma", "badge": "prisma", "ginasio": "Santuário Ampulheta"},
+		"props": {"big": ["p:obelisco", "p:cristal", "icerock1", "p:espelho", "icerock2"], "small": ["p:cristal", "p:pedrinha", "p:espelho", "p:cristal"], "front": ["icerock2", "p:cristal", "p:pedrinha"]}, "chao": "cristal", "prop_tint": Color(0.92, 0.82, 1.0),
+		"piso": [Color("3a2a4a"), Color("6a4a7a"), Color("bff6ff")]},
 ]
 
 # --- Falas da história. Cada fala: [quem, texto]. "" = narrador, "elo" = o aparelho.
@@ -319,7 +376,15 @@ const STORY := {
 	"lider1_depois": [["Maré", "Eu... o que eu disse? Desculpa, Ondelfim..."], ["elo", "Sinal estranho detectado no Monte Brasa. A sombra está mais forte."]],
 	"lider2_antes": [["Ígneo", "...ELO... ESSE APARELHO... ELE NÃO DEVIA TER VOLTADO..."], ["Ígneo", "A SOMBRA DISSE PARA EU APAGAR SUA CHAMA!"]],
 	"lider2_depois": [["Ígneo", "Minha cabeça... A sombra usava minha voz."], ["", "Ao longe, uma silhueta enorme observa. O Elo vibra, quente, como se chorasse."],
-		["???", "...Então ele te escolheu. Nos vemos no fim, pequeno treinador."], ["", "FIM DA DEMO. Obrigado por jogar!"]],
+		["???", "...Então ele te escolheu. Nos vemos no fim, pequeno treinador."],
+		["elo", "Três mundos purificados! O Cristal do Despertar acordou... e uma rota nova se abriu: o Pântano Sombrio."]],
+	"lider3_antes": [["Brumária", "A névoa me contou um segredo: o seu Elo já teve outro dono."], ["Brumária", "Vamos ver se ele ainda te obedece... ou se só lembra dele."]],
+	"lider3_depois": [["Brumária", "A névoa clareou. Desculpe, eu ouvia aquela voz o tempo todo."], ["Brumária", "Nas Ruínas de Cobre há máquinas que conversam com Elos. Talvez as respostas estejam lá."]],
+	"lider4_antes": [["Bronzo", "Engrenagens não sentem nada. Por isso nunca quebram."], ["Bronzo", "A sombra me deu um propósito: desligar todos os Elos. Começando pelo seu!"]],
+	"lider4_depois": [["Bronzo", "Os registros das ruínas... o primeiro Elo foi construído aqui, há muito tempo."], ["elo", "...memória recuperada: Deserto de Cristal. Origem do sinal da sombra."]],
+	"lider5_antes": [["Lúmina", "Cada cristal deste deserto reflete um tempo diferente. Em todos eles, você perde."], ["Lúmina", "Mas reflexos mentem. Mostre o verdadeiro!"]],
+	"lider5_depois": [["Lúmina", "Nos reflexos eu vi a sombra... Ela carrega um Elo igualzinho ao seu."],
+		["???", "Seis mundos. Você chegou longe, pequeno treinador. Agora venha me encontrar."], ["", "FIM DO MID GAME. O end game chega numa próxima atualização!"]],
 }
 
 # --- Itens
@@ -329,7 +394,7 @@ const ITEMS := {
 	"fruta": {"nome": "Fruta Doce", "cat": 0, "desc": "Brilha ao sol e é suculenta. Deixa o Digialma feliz e aumenta o vínculo."},
 	"doce": {"nome": "Doce Raro", "cat": 0, "desc": "Um doce brilhante e misterioso. Sobe 1 nível na hora."},
 	"orbe_alma": {"nome": "Orbe de Alma", "cat": 0, "desc": "Traz de volta um Digialma que virou alma-nuvem (caído), com metade da vida. É o ÚNICO jeito de reviver: descansar e curar não funcionam em almas. No idle: clique na nuvenzinha. Cai de Nefastos (raro) e dos Santuários."},
-	"cristal_despertar": {"nome": "Cristal do Despertar", "cat": 1, "desc": "Pedra dourada que pulsa como um coração. Faz uma forma FINAL no Nv 55 DESPERTAR (+25% em tudo, aura dourada), mas só depois de purificar os 3 mundos. Vem do Santuário do Monte Brasa e, raramente, dos mapas já purificados."},
+	"cristal_despertar": {"nome": "Cristal do Despertar", "cat": 1, "desc": "Pedra dourada que pulsa como um coração. Faz uma forma FINAL no Nv 55 DESPERTAR (+25% em tudo, aura dourada e, em muitas linhas, uma forma nova), mas só depois de purificar os 3 primeiros mundos. Vem dos Santuários do Monte Brasa em diante e, raramente, dos mapas já purificados."},
 	"chip_elo": {"nome": "Chip do Elo", "cat": 1, "desc": "Recarrega 3 cargas do seu Elo para escanear Digialmas."},
 	"ovo": {"nome": "Ovo Misterioso", "cat": 1, "desc": "Está quentinho... Choca conforme você dá passos."},
 	"mapa": {"nome": "Mapa da Região", "cat": 2, "desc": "Mostra as rotas, santuários e áreas secretas da região."},
@@ -495,6 +560,11 @@ func load_game() -> bool:
 			else:
 				set(k, d[k])
 	last_seen = int(d.get("quando", 0))
+	# saves de antes do mid game: quem já venceu o Monte Brasa ganha o Pântano
+	region_unlocked = maxi(region_unlocked, mini(badges + 1, REGIONS.size()))
+	for r in range(1, mini(badges + 1, REGIONS.size())):
+		if int(zone_max.get(r, 0)) < 1:
+			zone_max[r] = 1
 	for m in team + reserve:
 		dex_register(m)
 	return true
@@ -516,10 +586,15 @@ func _notification(what: int) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	for a in OS.get_cmdline_user_args():
+	# testes: "--shot=x" na linha de comando ou num arquivo res://_shot.txt (não versionado)
+	var args := OS.get_cmdline_user_args()
+	if FileAccess.file_exists("res://_shot.txt"):
+		args.append(FileAccess.get_file_as_string("res://_shot.txt").strip_edges())
+	for a in args:
 		if a.begins_with("--shot"):
 			_testing = true
 	_load_roster()
+	_load_mid()
 	load_game()
 	font = load("res://assets/fonts/PixeloidSans.ttf")
 	font_title = load("res://assets/fonts/dogicapixelbold.otf")
@@ -538,7 +613,7 @@ func _ready() -> void:
 	_fade_mat.set_shader_parameter("progress", 0.0)
 	layer.add_child(_fade)
 	_fade.visible = false
-	for a in OS.get_cmdline_user_args():
+	for a in args:
 		if a == "--shot=all":
 			_debug_shots("all")
 		elif a == "--shot=slice":
@@ -600,6 +675,8 @@ func _ready() -> void:
 			_debug_v31()
 		elif a == "--shot=chk":
 			_debug_chk()
+		elif a == "--shot=mid":
+			_debug_mid()
 		elif a == "--shot=v20":
 			_debug_v20()
 		elif a == "--shot=v19":
@@ -690,6 +767,8 @@ func monster_frames(id: int) -> SpriteFrames:
 		var path: String
 		if extra.has(anim):
 			path = extra[anim]
+		elif MID_ART.has(id):
+			path = "res://assets/monsters/n%d_%s.png" % [id, anim]
 		elif ROSTER_ART.has(id):
 			var want := "res://assets/monsters/d%d_%s.png" % [id, anim]
 			path = want if ResourceLoader.exists(want) else "res://assets/monsters/d%d_idle.png" % id
@@ -735,6 +814,8 @@ func char_frames(name: String) -> SpriteFrames:
 
 
 func menu_icon(id: int) -> Texture2D:
+	if MID_ART.has(id):
+		return tex("res://assets/monsters/menun%d.png" % id)
 	if ROSTER_ART.has(id):
 		return tex("res://assets/monsters/menud%d.png" % id)
 	if CUSTOM_SPRITES.has(id):
@@ -830,7 +911,7 @@ func stat(m: Dictionary, k: String) -> float:
 const RES_MAX := 5
 const RES_COST := 1
 const ESS_COST := 2
-const TYPE_BASIC := {"Pedra": "pedrada", "Metal": "lamina", "Sombra": "sombra", "Luz": "raio_luz", "Veneno": "toxina", "Som": "grito", "Cristal": "estilhaco", "Normal": "arranhao", "Fogo": "brasa", "Água": "jato", "Planta": "folha", "Voador": "rajada", "Gelo": "geada", "Psíquico": "mente", "Elétrico": "choque", "Inseto": "picada"}
+const TYPE_BASIC := {"Pedra": "pedrada", "Metal": "lamina", "Sombra": "sombra", "Luz": "raio_luz", "Veneno": "toxina", "Som": "grito", "Cristal": "estilhaco", "Normal": "arranhao", "Fogo": "brasa", "Água": "jato", "Planta": "folha", "Voador": "rajada", "Gelo": "geada", "Psíquico": "mente", "Elétrico": "choque", "Inseto": "picada", "Fumaça": "fuligem", "Ácido": "respingo", "Vácuo": "sopro_vazio", "Plasma": "ionizar", "Gravidade": "peso_subito", "Glitch": "bug", "Tempo": "tique_taque", "Espelho": "reflexo"}
 var cristais := 0
 
 # ---------------------------------------------------------------- NÍVEL DO ELO
@@ -870,8 +951,7 @@ func res_mult(m: Dictionary) -> float:
 
 func is_evolved(id: int) -> bool:
 	for k in MONSTERS:
-		var ev: Array = MONSTERS[k]["evo"]
-		if (ev.size() > 0 and ev[0] == id) or MONSTERS[k].get("evo_guarda", -1) == id:
+		if _succ(MONSTERS[k]).has(id):
 			return true
 	return false
 
@@ -882,8 +962,7 @@ func _line_root(id: int) -> int:
 	while changed:
 		changed = false
 		for k in MONSTERS:
-			var ev: Array = MONSTERS[k]["evo"]
-			if (ev.size() > 0 and ev[0] == cur) or MONSTERS[k].get("evo_guarda", -1) == cur:
+			if _succ(MONSTERS[k]).has(cur):
 				cur = k
 				changed = true
 				break
@@ -1017,6 +1096,58 @@ func _load_roster() -> void:
 			MONSTERS[id]["evo"] = []
 
 
+## ESPÉCIES DO MID GAME (data/especies_mid.json): as 10 linhas dos elementos
+## novos e as formas novas das espécies antigas. Cada linha tem 5 formas:
+## 1, 2, 3, D (Despertar: a forma 3 com o Cristal do Despertar) e A (Ascensão,
+## guardada para o end game). Sprites: assets/monsters/n<id>_<anim>.png.
+var MID_ART := {}
+
+
+func _load_mid() -> void:
+	var f := FileAccess.open("res://data/especies_mid.json", FileAccess.READ)
+	if f == null:
+		return
+	var d = JSON.parse_string(f.get_as_text())
+	if typeof(d) != TYPE_DICTIONARY:
+		return
+	for e in d.get("especies", []):
+		var id := int(e["id"])
+		var tipo: String = e["tipo"]
+		var k: float = e["k"]
+		var pf: Array = e["perf"]
+		var forma: String = e["forma"]
+		var moves: Array = ["investida", TYPE_BASIC.get(tipo, "arranhao")]
+		if forma != "1":
+			moves.append(TYPE_SPECIAL.get(tipo, "impacto"))
+		var evo: Array = []
+		if e.has("evo"):
+			evo = [int(e["evo"][0]), int(e["evo"][1])]
+		var md := {"nome": e["nome"], "tipo": tipo, "cor": TYPE_COLORS.get(tipo, Color.WHITE), "hp": k * float(pf[0]), "atk": k * float(pf[1]),
+			"def": k * float(pf[2]), "evo": evo, "moves": moves, "jeito": e["jeito"], "forma": forma}
+		if e.has("desperta"):
+			md["desperta"] = int(e["desperta"])
+		if e.has("ascende"):
+			md["ascende"] = int(e["ascende"])
+		MONSTERS[id] = md
+		MID_ART[id] = true
+		FOOT[id] = 88
+	# as espécies antigas agora evoluem para as formas novas
+	var eb: Dictionary = d.get("evo_base", {})
+	for k in eb:
+		MONSTERS[int(k)]["evo"] = [int(eb[k][0]), int(eb[k][1])]
+
+
+## Próximas formas de uma espécie (evolução, ramo guarda, Despertar e Ascensão).
+func _succ(d: Dictionary) -> Array:
+	var r: Array = []
+	if d["evo"].size() > 0:
+		r.append(int(d["evo"][0]))
+	for key in ["evo_guarda", "desperta", "ascende"]:
+		if d.has(key):
+			r.append(int(d[key]))
+	return r
+
+
 # ---------------------------------------------------------------- DESPERTAR
 ## A 4ª forma: só depois de purificar os 3 mundos. A forma FINAL de uma linha,
 ## no Nv 55, com um Cristal do Despertar, desperta: +25% em tudo, aura dourada
@@ -1035,6 +1166,9 @@ func awaken(m: Dictionary) -> void:
 	if inventory["cristal_despertar"] <= 0:
 		inventory.erase("cristal_despertar")
 	m["desperto"] = true
+	# linhas com forma D desenhada: o Digialma vira a forma desperta
+	if MONSTERS[m["id"]].has("desperta"):
+		m["id"] = int(MONSTERS[m["id"]]["desperta"])
 	m["hp"] = max_hp(m)
 	m["pa"] = int(m.get("pa", 0)) + 5
 	dex_register(m)
@@ -1259,10 +1393,7 @@ func rar_options(id: int) -> Array:
 
 func _has_pre(id: int) -> bool:
 	for k in MONSTERS:
-		var e: Array = MONSTERS[k]["evo"]
-		if e.size() > 0 and int(e[0]) == id:
-			return true
-		if int(MONSTERS[k].get("evo_guarda", -1)) == id:
+		if _succ(MONSTERS[k]).has(id):
 			return true
 	return false
 
@@ -1275,8 +1406,7 @@ func evo_line(id: int) -> Array:
 		guard += 1
 		var found := -1
 		for k in MONSTERS:
-			var e: Array = MONSTERS[k]["evo"]
-			if (e.size() > 0 and int(e[0]) == root) or int(MONSTERS[k].get("evo_guarda", -1)) == root:
+			if _succ(MONSTERS[k]).has(root):
 				found = k
 				break
 		if found < 0:
@@ -1285,11 +1415,9 @@ func evo_line(id: int) -> Array:
 	var line: Array = [root]
 	var i := 0
 	while i < line.size():
-		var d: Dictionary = MONSTERS[line[i]]
-		if d["evo"].size() > 0 and not line.has(int(d["evo"][0])):
-			line.append(int(d["evo"][0]))
-		if d.has("evo_guarda") and not line.has(int(d["evo_guarda"])):
-			line.append(int(d["evo_guarda"]))
+		for nx in _succ(MONSTERS[line[i]]):
+			if not line.has(nx):
+				line.append(nx)
 		i += 1
 	return line
 
@@ -1333,7 +1461,8 @@ func effectiveness(move_type: String, def_type: String) -> float:
 
 
 func mon_name(m: Dictionary) -> String:
-	return MONSTERS[m["id"]]["nome"] + (" Desperto" if m.get("desperto", false) else "")
+	var d: Dictionary = MONSTERS[m["id"]]
+	return d["nome"] + (" Desperto" if m.get("desperto", false) and d.get("forma", "") != "D" else "")
 
 
 func first_alive() -> int:
@@ -2389,6 +2518,105 @@ func _debug_v30() -> void:
 			get_viewport().get_texture().get_image().save_png("/tmp/v30/%03d.png" % i)
 		if i == 30 and idle:
 			idle._open_duel()
+	get_tree().quit()
+
+
+## Teste do mid game: confere dados/sprites das espécies novas e tira fotos
+## do idle nos 3 mapas novos, do Mapa do Mundo e do Despertar com forma nova.
+func _debug_mid() -> void:
+	var dir := ProjectSettings.globalize_path("res://_mid")
+	DirAccess.make_dir_recursive_absolute(dir)
+	get_tree().create_timer(150.0, true, false, true).timeout.connect(get_tree().quit)
+	var snap := func(n: String):
+		get_viewport().get_texture().get_image().save_png(dir + "/%s.png" % n)
+	var bad := 0
+	for id in MID_ART:
+		var d: Dictionary = MONSTERS[id]
+		var sf := monster_frames(id)
+		for an in ["idle", "walk", "attack"]:
+			if sf.get_frame_count(an) != 6:
+				print("ERRO frames ", id, " ", an, " ", sf.get_frame_count(an)); bad += 1
+		if menu_icon(id) == null:
+			print("ERRO menu ", id); bad += 1
+		for mk in d["moves"]:
+			if not MOVES.has(mk):
+				print("ERRO golpe ", id, " ", mk); bad += 1
+		if not TYPE_COLORS.has(d["tipo"]) or not TYPE_SUPREME.has(d["tipo"]) or (not STRONG.has(d["tipo"]) and d["tipo"] != "Normal"):
+			print("ERRO tipo ", id, " ", d["tipo"]); bad += 1
+		if not ResourceLoader.exists("res://assets/ui/idle_tipo_%s.png" % TYPE_SLUG.get(d["tipo"], "?")):
+			print("ERRO icone tipo ", d["tipo"]); bad += 1
+	for r in REGIONS.size():
+		for tier in ZONE_POOLS[r]:
+			for id in tier:
+				if not MONSTERS.has(id):
+					print("ERRO pool ", r, " ", id); bad += 1
+		for pth in [REGIONS[r]["bg"], "res://assets/badges/%s.png" % REGIONS[r]["lider"]["badge"], GP + "objects/%s.png" % REGIONS[r]["arena"]]:
+			if not ResourceLoader.exists(pth):
+				print("ERRO arquivo ", pth); bad += 1
+		for kind in ["big", "small", "front"]:
+			for n in REGIONS[r]["props"][kind]:
+				var pp: String = ("res://assets/props/" + n.substr(2) if n.begins_with("p:") else GP + "objects/" + n) + ".png"
+				if not ResourceLoader.exists(pp):
+					print("ERRO prop ", pp); bad += 1
+	print("MID checagem: ", MID_ART.size(), " espécies, erros=", bad, " linha Capivolt=", evo_line(4), " linha Fuligim=", evo_line(101))
+	await get_tree().create_timer(0.5).timeout
+	new_game(7)
+	tutorial["idle"] = true
+	badges = 3
+	all_purified = true
+	region_unlocked = 4
+	team[0] = new_monster(103, 72, 2)
+	make_partner(team[0])
+	add_partner(new_monster(155, 70, 1))
+	add_partner(new_monster(167, 70, 3))
+	for m in team:
+		m["hp"] = max_hp(m)
+	badges = 6  # fotos com os mapas já purificados (cores reais)
+	for r in [3, 4, 5]:
+		region = r
+		zone[r] = 4
+		zone_max[r] = 4
+		get_tree().change_scene_to_file("res://scenes/idle.tscn")
+		await get_tree().create_timer(4.0).timeout
+		snap.call("idle_%d" % r)
+	get_tree().unload_current_scene()
+	await get_tree().process_frame
+	var w := get_window()
+	w.content_scale_size = Vector2i(640, 360)
+	w.size = Vector2i(1280, 720)
+	w.transparent = false
+	get_viewport().transparent_bg = false
+	badges = 4  # Pântano purificado; Ruínas abertas
+	region = 4
+	await get_tree().create_timer(0.4).timeout
+	var mp = load("res://scripts/mapa_idle.gd").new()
+	get_tree().root.add_child(mp)
+	await get_tree().create_timer(0.6).timeout
+	snap.call("mapa")
+	mp.queue_free()
+	# fundo de batalha de cada mapa novo
+	for r in [3, 4, 5]:
+		var bgs := TextureRect.new()
+		bgs.texture = tex(REGIONS[r]["bg"])
+		get_tree().root.add_child(bgs)
+		var amb = load("res://scripts/ambient.gd").new()
+		amb.kind = load("res://scripts/ambient.gd").kind_for(REGIONS[r])
+		get_tree().root.add_child(amb)
+		await get_tree().create_timer(1.5).timeout
+		snap.call("bg_%d" % r)
+		bgs.queue_free()
+		amb.queue_free()
+		# Despertar: Chaminéus Nv 72 + Cristal -> Brumath
+	inventory["cristal_despertar"] = 1
+	print("pode despertar=", can_awaken(team[0]))
+	var ev = preload("res://scripts/evolution.gd").new()
+	get_tree().root.add_child(ev)
+	ev.run_awaken(team[0])
+	for i in 14:
+		await get_tree().create_timer(0.8).timeout
+		snap.call("desp_%02d" % i)
+	print("depois: id=", team[0]["id"], " nome=", mon_name(team[0]))
+	print("MID FIM ", dir)
 	get_tree().quit()
 
 
