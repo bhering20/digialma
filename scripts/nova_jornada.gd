@@ -21,6 +21,7 @@ var t := 0.0
 func _ready() -> void:
 	theme = Game.make_theme()
 	size = Game.BASE
+	Game.play_music("res://assets/music/tema_titulo.mp3")
 	var bg := TextureRect.new()
 	bg.texture = Game.tex("res://assets/backgrounds/titulo.png")
 	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

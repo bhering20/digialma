@@ -581,6 +581,44 @@ func sfx(name: String, db := 0.0, cooldown := 0.25) -> void:
 	p.play()
 
 
+# ---------------------------------------------------------------- MÚSICA
+## Uma música por vez, em loop, com entrada e saída suaves. Volume pela opção MÚSICA.
+var _music: AudioStreamPlayer
+var _music_path := ""
+
+
+func play_music(path: String, fade := 1.5) -> void:
+	if _music_path == path and _music and _music.playing:
+		return
+	if _music == null:
+		_music = AudioStreamPlayer.new()
+		_music.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(_music)
+	var st = load(path)
+	if st == null:
+		return
+	if st is AudioStreamMP3:
+		st.loop = true
+	_music_path = path
+	_music.stream = st
+	_music.volume_db = -40.0
+	_music.play()
+	create_tween().tween_property(_music, "volume_db", music_db(), fade)
+
+
+func music_db() -> float:
+	return linear_to_db(maxf(0.001, options.get("musica", 80) / 100.0)) - 6.0
+
+
+func stop_music(fade := 1.0) -> void:
+	if _music == null or not _music.playing:
+		return
+	_music_path = ""
+	var tw := create_tween()
+	tw.tween_property(_music, "volume_db", -40.0, fade)
+	tw.tween_callback(_music.stop)
+
+
 func save_game() -> void:
 	if _testing or team.is_empty():
 		return

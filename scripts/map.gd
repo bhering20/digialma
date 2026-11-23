@@ -31,6 +31,7 @@ class PathLine extends Node2D:
 
 func _ready() -> void:
 	theme = Game.make_theme()
+	Game.stop_music(2.0)  # a música é do título; o jogo segue em silêncio
 	var bg := TextureRect.new()
 	bg.texture = Game.tex(Game.GP + "backgrounds/forest.png")
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)

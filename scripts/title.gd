@@ -91,6 +91,7 @@ class FxLayer extends Node2D:
 
 func _ready() -> void:
 	theme = Game.make_theme()
+	Game.play_music("res://assets/music/tema_titulo.mp3")
 	_build_scene()
 	_build_menu()
 	_build_select()
@@ -336,7 +337,10 @@ func _build_options() -> void:
 		var s := HSlider.new()
 		s.custom_minimum_size = Vector2(170, 16)
 		s.value = Game.options[k]
-		s.value_changed.connect(func(val): Game.options[k] = val)
+		s.value_changed.connect(func(val):
+			Game.options[k] = val
+			if k == "musica" and Game._music:
+				Game._music.volume_db = Game.music_db())
 		h.add_child(s)
 		v.add_child(h)
 	var wa := CheckButton.new()

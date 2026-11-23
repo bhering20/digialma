@@ -42,6 +42,59 @@ func _ready() -> void:
 	theme = Game.make_theme()
 
 
+signal _branch_chosen(id: int)
+
+
+## Dois caminhos de evolução: mostra as duas formas e espera o clique.
+func _ask_branch(a: int, b: int) -> int:
+	var box := Control.new()
+	box.size = Game.BASE * K
+	add_child(box)
+	var q := Label.new()
+	q.text = "Escolha o caminho da evolução"
+	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	q.size = Vector2(640, 20) * K
+	q.position = Vector2(0, 22) * K
+	q.add_theme_font_size_override("font_size", 9 if compact else 16)
+	q.add_theme_color_override("font_color", Color("ffd84a"))
+	box.add_child(q)
+	var info := [[a, "ATAQUE", "Mais dano e golpes fortes."], [b, "DEFESA", "Mais vida e defesa."]]
+	for i in 2:
+		var id: int = info[i][0]
+		var cx := (190.0 + i * 260.0) * K
+		var btn := Button.new()
+		btn.position = Vector2(cx - 110 * K, 58 * K)
+		btn.size = Vector2(220, 240) * K
+		btn.add_theme_stylebox_override("normal", Game.sb("slot", 5))
+		btn.add_theme_stylebox_override("hover", Game.sb("slot_sel", 5))
+		btn.add_theme_stylebox_override("pressed", Game.sb("slot_sel", 5))
+		btn.pressed.connect(func(): _branch_chosen.emit(id))
+		box.add_child(btn)
+		var s := AnimatedSprite2D.new()
+		s.sprite_frames = Game.monster_frames(id)
+		s.play("idle")
+		s.centered = false
+		s.offset = Game.foot_offset(id)
+		s.scale = Vector2(1.6, 1.6) * K
+		s.position = Vector2(110, 160) * K
+		btn.add_child(s)
+		var l := Label.new()
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.clip_text = true
+		l.text = "%s\n%s" % [info[i][1], Game.MONSTERS[id]["nome"]] if compact else "%s\n%s\n%s" % [info[i][1], Game.MONSTERS[id]["nome"], info[i][2]]
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.size = Vector2(220, 60) * K
+		l.position = Vector2(0, 168) * K
+		l.add_theme_font_size_override("font_size", 7 if compact else 12)
+		btn.add_child(l)
+	spr.visible = false
+	var chosen: int = await _branch_chosen
+	box.queue_free()
+	spr.visible = true
+	Game.sfx("item")
+	return chosen
+
+
 func run(m: Dictionary) -> void:
 	var old_id: int = m["id"]
 	var new_id: int = Game.evo_target(m)
@@ -78,6 +131,14 @@ func run(m: Dictionary) -> void:
 	label.text = "Hã? %s está reagindo ao vínculo..." % Game.MONSTERS[old_id]["nome"]
 	await get_tree().create_timer(1.0).timeout
 	label.text = ""
+	# linha com dois ramos e sem histórico de Fúria/Guarda (idle): o jogador escolhe
+	var od: Dictionary = Game.MONSTERS[old_id]
+	if od.has("evo_guarda") and int(m.get("fur", 0)) == 0 and int(m.get("gua", 0)) == 0:
+		new_id = await _ask_branch(int(od["evo"][0]), int(od["evo_guarda"]))
+		if new_id == int(od["evo_guarda"]):
+			m["gua"] = 1  # registra o ramo escolhido
+		else:
+			m["fur"] = 1
 	# brilho crescente + partículas puxadas
 	var tw := create_tween().set_parallel(true)
 	tw.tween_property(rays, "power", 1.0, 1.2)

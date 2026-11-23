@@ -71,6 +71,7 @@ var drag_off := Vector2i.ZERO
 
 func _ready() -> void:
 	rng.randomize()
+	Game.stop_music(2.0)  # a música é do título; o jogo segue em silêncio
 	if Game.team.is_empty():
 		Game.new_game(7)
 	theme = Game.make_theme()
