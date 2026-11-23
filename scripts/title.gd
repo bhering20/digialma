@@ -56,24 +56,24 @@ class FxLayer extends Node2D:
 		rng.randomize()
 		for i in 28:
 			flies.append({"p": Vector2(rng.randf_range(0, 640), rng.randf_range(120, 330)), "ph": rng.randf() * TAU, "s": rng.randf_range(0.5, 1.2)})
-		for i in 14:
-			leaves.append({"p": Vector2(rng.randf_range(0, 640), rng.randf_range(-360, 0)), "ph": rng.randf() * TAU, "v": rng.randf_range(14, 26), "c": [Color("8fd45a"), Color("ffc24a"), Color("ff8a5a")][i % 3]})
+		# almas: luzinhas que sobem devagar até a árvore
+		for i in 18:
+			leaves.append({"p": Vector2(rng.randf_range(0, 640), rng.randf_range(0, 380)), "ph": rng.randf() * TAU, "v": rng.randf_range(6, 14), "c": [Color("8af0ff"), Color("ffd84a"), Color("ff9ad8"), Color("b8ffb0")][i % 4]})
 
 	func _process(delta: float) -> void:
 		t += delta
 		for l in leaves:
-			l["p"].y += l["v"] * delta
-			l["p"].x += sin(t * 1.3 + l["ph"]) * 14.0 * delta - 6.0 * delta
-			if l["p"].y > 370:
-				l["p"] = Vector2(rng.randf_range(0, 700), -10)
+			l["p"].y -= l["v"] * delta
+			l["p"].x += sin(t * 0.9 + l["ph"]) * 10.0 * delta + (320.0 - l["p"].x) * 0.02 * delta
+			if l["p"].y < 40:
+				l["p"] = Vector2(rng.randf_range(0, 640), rng.randf_range(370, 400))
 		queue_redraw()
 
 	func _draw() -> void:
-		# raios de sol
-		for i in 4:
-			var a := 0.05 + 0.03 * sin(t * 0.7 + i)
-			var x0 := 380.0 + i * 70.0
-			draw_colored_polygon(PackedVector2Array([Vector2(x0, -10), Vector2(x0 + 30, -10), Vector2(x0 - 140, 380), Vector2(x0 - 210, 380)]), Color(1, 0.95, 0.7, a))
+		# brilho pulsando da árvore das almas
+		var ga := 0.06 + 0.03 * sin(t * 0.8)
+		draw_circle(Vector2(320, 120), 150.0, Color(0.72, 0.56, 1.0, ga * 0.5))
+		draw_circle(Vector2(320, 120), 90.0, Color(0.72, 0.56, 1.0, ga * 0.6))
 		for f in flies:
 			var p: Vector2 = f["p"] + Vector2(sin(t * f["s"] + f["ph"]) * 12.0, cos(t * f["s"] * 1.3 + f["ph"]) * 8.0)
 			var a := 0.5 + 0.5 * sin(t * 3.0 + f["ph"])
@@ -81,9 +81,12 @@ class FxLayer extends Node2D:
 			draw_rect(Rect2(p.round(), Vector2(1, 1)), Color(1, 1, 0.8, a))
 		for l in leaves:
 			var p: Vector2 = (l["p"] as Vector2).round()
-			var flip := int(t * 4.0 + l["ph"]) % 2 == 0
-			draw_rect(Rect2(p, Vector2(3 if flip else 2, 2)), l["c"])
-			draw_rect(Rect2(p + Vector2(1, 2), Vector2(1, 1)), (l["c"] as Color).darkened(0.3))
+			var c: Color = l["c"]
+			var a := clampf((p.y - 40.0) / 120.0, 0.0, 1.0)
+			draw_circle(p, 5.0, Color(c, 0.12 * a))
+			draw_circle(p, 2.5, Color(c, 0.3 * a))
+			draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), Color(1, 1, 1, 0.9 * a))
+			draw_rect(Rect2(p + Vector2(0, 3), Vector2(1, 2)), Color(c, 0.4 * a))
 
 
 func _ready() -> void:
@@ -122,7 +125,8 @@ func _unhandled_input(event: InputEvent) -> void:
 # ---------------------------------------------------------------- montagem
 func _build_scene() -> void:
 	var bg := TextureRect.new()
-	bg.texture = Game.tex(Game.MP + "backgrounds/background1.png")
+	bg.texture = Game.tex("res://assets/backgrounds/titulo.png")
+	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -141,6 +145,7 @@ func _build_scene() -> void:
 		s.offset = Game.foot_offset(m[0])
 		s.scale = Vector2(2, 2)
 		s.position = m[1]
+		s.modulate = Color(0.86, 0.82, 0.98)  # luz do entardecer
 		add_child(s)
 	# crianças à esquerda
 	var kids := [["player", Vector2(84, 342)], ["young_girl", Vector2(170, 342)]]
@@ -151,6 +156,7 @@ func _build_scene() -> void:
 		s.centered = false
 		s.offset = Vector2(-64, -128)
 		s.position = k[1]
+		s.modulate = Color(0.86, 0.82, 0.98)
 		add_child(s)
 	var vig := ColorRect.new()
 	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -179,11 +185,6 @@ func _build_scene() -> void:
 	press_label.position = Vector2(0, 200)
 	add_child(press_label)
 	var ver := Label.new()
-	ver.text = "v0.4  protótipo"
-	ver.add_theme_font_size_override("font_size", 9)
-	ver.add_theme_color_override("font_color", Color(1, 1, 1, 0.55))
-	ver.position = Vector2(560, 346)
-	add_child(ver)
 
 
 func _build_menu() -> void:
@@ -197,6 +198,7 @@ func _build_menu() -> void:
 	var items := [["NOVO JOGO", _on_new], ["CONTINUAR", _on_continue], ["MODO IDLE", _on_idle], ["OPÇÕES", _on_options], ["SAIR", _on_quit]]
 	if Game.TEST_BUILD:
 		items.insert(3, ["TESTE: MID GAME", _on_teste_mid])
+		items.insert(4, ["TESTE: NOVA JORNADA", _on_teste_nova])
 	for it in items:
 		var b := Button.new()
 		b.text = it[0]
@@ -444,9 +446,10 @@ func _on_continue() -> void:
 
 
 func _on_idle() -> void:
-	# sem time ainda: começa direto na faixa com o Brasito
+	# sem time ainda: escolhe personagem e parceiro antes de entrar na faixa
 	if Game.team.is_empty():
-		Game.new_game(7)
+		Game.change_scene("res://scenes/nova_jornada.tscn")
+		return
 	Game.region = mini(Game.badges, Game.REGIONS.size() - 1)
 	Game.change_scene("res://scenes/idle.tscn")
 
@@ -456,6 +459,14 @@ func _on_idle() -> void:
 func _on_teste_mid() -> void:
 	Game.start_test_mid()
 	Game.change_scene("res://scenes/idle.tscn")
+
+
+## Só nas versões de teste: começo do idle do zero (o save atual é guardado).
+func _on_teste_nova() -> void:
+	if FileAccess.file_exists(Game.SAVE_PATH):
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(Game.SAVE_PATH), ProjectSettings.globalize_path("user://save_antes_do_teste.json"))
+	Game.team = []
+	Game.change_scene("res://scenes/nova_jornada.tscn")
 
 
 func _on_options() -> void:

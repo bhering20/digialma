@@ -744,63 +744,161 @@ func _overlay(title: String, rows: Array) -> void:
 
 # ---------------------------------------------------------------- MOCHILA
 ## Tudo o que você carrega, com para que serve cada coisa (e USAR quando dá).
-func _build_mochila() -> void:
-	var dim := ColorRect.new()
-	dim.color = Color(0.04, 0.03, 0.1, 0.82)
-	dim.position = Vector2(6, 0)
-	dim.size = Vector2(628, 290)
-	body.add_child(dim)
-	var sc := ScrollContainer.new()
-	sc.position = Vector2(12, 4)
-	sc.size = Vector2(616, 284)
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	body.add_child(sc)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	sc.add_child(v)
+var bag_sel := ""  # item escolhido na mochila
+
+
+func _bag_rows() -> Array:
 	var rows: Array = []
 	for k in ["orbe_alma", "pocao", "super_pocao", "cristal_despertar", "chip_elo", "fruta", "doce", "ovo", "mapa", "bits"]:
 		if int(Game.inventory.get(k, 0)) > 0:
 			rows.append([k, Game.ITEMS[k]["nome"], int(Game.inventory[k]), Game.ITEMS[k]["desc"], Game.ITEM_ICON.get(k, "gema")])
-	rows.insert(1, ["cristais", "Cristal de Ressonância", Game.cristais, "Combustível das FUSÕES: 1 para Ressonância (queimar uma cópia: +5% de atributos, raridade não muda), 2 para Essência (ganhar um 2º elemento). Cai dos Nefastos e dos duelos.", "res"])
-	rows.append(["amuletos", "Amuletos de Alma", Game.gear.size(), "Equipe até 2 por Digialma (2º espaço no Nv 20). Presa = dano, Escama = menos dano recebido, Coração = vida, Pena = janela de esquiva, Trevo = XP, Moeda = bits, Cristal = Sincronia. 3 iguais viram 1 mais raro.", "gema"])
+	if Game.cristais > 0:
+		rows.insert(mini(1, rows.size()), ["cristais", "Cristal de Ressonância", Game.cristais, "Combustível das FUSÕES: 1 para Ressonância (queimar uma cópia: +5% de atributos, raridade não muda), 2 para Essência (ganhar um 2º elemento). Cai dos Nefastos e dos duelos.", "res"])
+	if Game.gear.size() > 0:
+		rows.append(["amuletos", "Amuletos de Alma", Game.gear.size(), "Equipe até 2 por Digialma (2º espaço no Nv 20) na aba AMULETOS. Presa = dano, Escama = menos dano recebido, Coração = vida, Pena = esquiva, Trevo = XP, Moeda = bits, Cristal = Sincronia. 3 iguais viram 1 mais raro.", "gema"])
+	return rows
+
+
+func _build_mochila() -> void:
+	var rows := _bag_rows()
+	if bag_sel == "" or not rows.any(func(r): return r[0] == bag_sel):
+		bag_sel = rows[0][0] if rows.size() > 0 else ""
+	# a mochila de couro, com os itens nos espaços
+	var bag := TextureRect.new()
+	bag.texture = Game.tex("res://assets/ui/bag/mochila.png")
+	bag.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	bag.position = Vector2(6, 2)
+	body.add_child(bag)
+	var plate := Label.new()
+	plate.text = "MOCHILA"
+	plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	plate.position = Vector2(110, 37)
+	plate.size = Vector2(120, 20)
+	plate.add_theme_font_size_override("font_size", 10)
+	plate.add_theme_color_override("font_color", Color("4a2a18"))
+	body.add_child(plate)
+	for n in 15:
+		var sl := BagSlot.new()
+		sl.position = Vector2(33 + (n % 5) * 56, 93 + (n / 5) * 56)
+		if n < rows.size():
+			var r: Array = rows[n]
+			sl.key = r[0]
+			sl.icon = Game.tex("res://assets/ui/idle_%s.png" % r[4])
+			sl.count = r[2]
+			sl.selected = r[0] == bag_sel
+			sl.tooltip_text = r[1]
+			sl.pressed_cb = func(k):
+				bag_sel = k
+				_build()
+		body.add_child(sl)
+	# o cartão do item
+	var card := TextureRect.new()
+	card.texture = Game.tex("res://assets/ui/bag/cartao.png")
+	card.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	card.position = Vector2(344, 2)
+	body.add_child(card)
+	info.text = "Clique num item da mochila para ver para que ele serve."
+	var row: Array = []
 	for r in rows:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		row.custom_minimum_size = Vector2(600, 36)
-		v.add_child(row)
-		var ic := TextureRect.new()
-		ic.texture = Game.tex("res://assets/ui/idle_%s.png" % r[4])
-		ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		ic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		ic.custom_minimum_size = Vector2(20, 20)
-		row.add_child(ic)
-		var tv := VBoxContainer.new()
-		tv.add_theme_constant_override("separation", 0)
-		tv.custom_minimum_size = Vector2(500, 0)
-		row.add_child(tv)
-		var nm := Label.new()
-		nm.text = "%s  x%d" % [r[1], r[2]]
-		nm.add_theme_font_size_override("font_size", 9)
-		nm.add_theme_color_override("font_color", Color("ffd84a"))
-		tv.add_child(nm)
-		var d := Label.new()
-		d.text = r[3]
-		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		d.custom_minimum_size = Vector2(500, 0)
-		d.add_theme_font_size_override("font_size", 8)
-		d.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
-		tv.add_child(d)
-		if r[0] in ["orbe_alma", "pocao", "super_pocao"]:
-			var use := Button.new()
-			use.text = "USAR"
-			use.custom_minimum_size = Vector2(56, 22)
-			use.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			use.add_theme_font_size_override("font_size", 8)
-			var key: String = r[0]
-			use.pressed.connect(func(): _use_item(key))
-			row.add_child(use)
-	info.text = "Passe o olho: cada item diz para que serve. Almas (Digialmas caídos) só voltam com Orbe de Alma."
+		if r[0] == bag_sel:
+			row = r
+	if row.is_empty():
+		var em := Label.new()
+		em.text = "Mochila vazia."
+		em.position = Vector2(344, 130)
+		em.size = Vector2(280, 20)
+		em.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		em.add_theme_color_override("font_color", Color("4a2a18"))
+		body.add_child(em)
+		return
+	var big := TextureRect.new()
+	big.texture = Game.tex("res://assets/ui/idle_%s.png" % row[4])
+	big.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	big.size = Vector2(42, 42)
+	big.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	big.position = Vector2(344 + 140 - 21, 2 + 59 - 21)
+	body.add_child(big)
+	var nm := Label.new()
+	nm.text = row[1]
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.position = Vector2(356, 106)
+	nm.size = Vector2(256, 20)
+	nm.add_theme_font_size_override("font_size", 11)
+	nm.add_theme_color_override("font_color", Color("4a2a18"))
+	body.add_child(nm)
+	var qt := Label.new()
+	qt.text = "você tem  x%d" % row[2]
+	qt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	qt.position = Vector2(356, 124)
+	qt.size = Vector2(256, 16)
+	qt.add_theme_font_size_override("font_size", 8)
+	qt.add_theme_color_override("font_color", Color("8a5a30"))
+	body.add_child(qt)
+	var ds := Label.new()
+	ds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ds.text = row[3]
+	ds.position = Vector2(366, 146)
+	ds.size = Vector2(236, 90)
+	ds.add_theme_font_size_override("font_size", 8)
+	ds.add_theme_color_override("font_color", Color("3a2014"))
+	body.add_child(ds)
+	if row[0] in ["orbe_alma", "pocao", "super_pocao"]:
+		var use := Button.new()
+		use.text = "USAR"
+		use.position = Vector2(434, 242)
+		use.custom_minimum_size = Vector2(100, 26)
+		var key: String = row[0]
+		use.pressed.connect(func(): _use_item(key))
+		body.add_child(use)
+	info.text = "Almas (Digialmas caídos) só voltam com Orbe de Alma."
+
+
+class BagSlot extends Control:
+	var key := ""
+	var icon: Texture2D
+	var count := 0
+	var selected := false
+	var pressed_cb: Callable
+	var tt := 0.0
+
+	func _ready() -> void:
+		custom_minimum_size = Vector2(50, 50)
+		size = Vector2(50, 50)
+		mouse_filter = Control.MOUSE_FILTER_STOP if key != "" else Control.MOUSE_FILTER_IGNORE
+		mouse_entered.connect(queue_redraw)
+		mouse_exited.connect(queue_redraw)
+
+	func _process(d: float) -> void:
+		if selected:
+			tt += d
+			queue_redraw()
+
+	func _gui_input(e: InputEvent) -> void:
+		if key != "" and e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			Game.sfx("item")
+			pressed_cb.call(key)
+
+	func _draw() -> void:
+		# espaço afundado no couro
+		draw_rect(Rect2(Vector2.ZERO, size), Color("3a2014"))
+		draw_rect(Rect2(Vector2(2, 2), size - Vector2(4, 4)), Color("4a2a18"))
+		draw_rect(Rect2(Vector2(2, 2), Vector2(size.x - 4, 3)), Color("2e180e"))
+		draw_rect(Rect2(Vector2(2, size.y - 4), Vector2(size.x - 4, 2)), Color("7a4a2c"))
+		if key == "":
+			return
+		var hover := get_global_rect().has_point(get_global_mouse_position())
+		if hover and not selected:
+			draw_rect(Rect2(Vector2(2, 2), size - Vector2(4, 4)), Color(1, 0.9, 0.6, 0.08))
+		draw_texture_rect(icon, Rect2(Vector2(11, 9), Vector2(28, 28)), false)
+		var f := get_theme_font("font", "Label")
+		var txt := "x%d" % count if count < 1000 else "%dk" % (count / 1000)
+		var p := Vector2(size.x - 4 - f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x, size.y - 5)
+		for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+			draw_string(f, p + o, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("1e0e06"))
+		draw_string(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("fff0c8"))
+		if selected:
+			var a := 0.7 + 0.3 * sin(tt * 5.0)
+			draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0.85, 0.3, a), false, 2.0)
 
 
 func _use_item(k: String) -> void:
