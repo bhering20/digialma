@@ -7,7 +7,7 @@ const UI := "res://assets/ui/"
 const BASE := Vector2(640, 360)
 
 const GAME_TITLE := "DIGIALMA"
-const GAME_SUBTITLE := "monstrinhos que vivem com você"
+const GAME_SUBTITLE := "toda alma merece um elo"
 
 # --- Personagens jogáveis (sprites do pacote, 4x4 quadros de 128px: baixo, esquerda, direita, cima)
 const CHARACTERS := {
