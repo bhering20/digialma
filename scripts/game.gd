@@ -544,7 +544,7 @@ void fragment() {
 # ---------------------------------------------------------------- SAVE
 const VERSION := "0.4"
 const SAVE_PATH := "user://digialma_save.dat"
-const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp", "dex_caught", "badge_lv", "badge_eq"]
+const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp", "dex_caught", "badge_lv", "badge_eq", "dex_premios"]
 var last_seen := 0  # quando o jogo foi salvo pela última vez (para o progresso offline)
 var _save_t := 0.0
 var _testing := false
@@ -649,6 +649,7 @@ func _ready() -> void:
 			_testing = true
 	_load_roster()
 	_load_mid()
+	_load_dex_text()
 	load_game()
 	font = load("res://assets/fonts/PixeloidSans.ttf")
 	font_title = load("res://assets/fonts/dogicapixelbold.otf")
@@ -731,6 +732,8 @@ func _ready() -> void:
 			_debug_chk()
 		elif a == "--shot=mid":
 			_debug_mid()
+		elif a == "--shot=sim":
+			_debug_sim()
 		elif a == "--shot=v20":
 			_debug_v20()
 		elif a == "--shot=v19":
@@ -1230,13 +1233,92 @@ func awaken(m: Dictionary) -> void:
 
 ## Ordem da Digidex: linha por linha.
 func dex_order() -> Array:
-	var order: Array = [7, 8, 9, 17, 18, 1, 2, 3, 12, 13, 14, 15, 16, 4, 5, 6, 10, 11]
+	# linha por linha: cada espécie antiga vem junto com as formas novas dela
+	var order: Array = []
+	for b in [7, 1, 12, 15, 4, 5, 6, 10, 11]:
+		for x in evo_line(b):
+			if MONSTERS.has(x) and not order.has(x):
+				order.append(x)
 	var rest: Array = []
 	for k in MONSTERS:
 		if not order.has(k):
 			rest.append(k)
 	rest.sort()
 	return order + rest
+
+
+# ---------------------------------------------------------------- COLEÇÃO
+## Digidex como coleção: texto de cada Digialma, marcos com prêmio e o
+## segredo final (Ygdralma), que aparece só para quem capturar TODOS.
+const SECRET_ID := 200
+const SECRET_NOME := "Ygdralma"
+const DEX_MARCOS := [
+	{"pct": 10, "itens": {"orbe_alma": 3}, "bits": 300, "desc": "3 Orbes de Alma + 300 bits"},
+	{"pct": 25, "itens": {"super_pocao": 2}, "cristais": 2, "desc": "2 Cristais de Ressonância + 2 Super Poções"},
+	{"pct": 50, "itens": {"cristal_despertar": 1}, "bits": 1500, "desc": "1 Cristal do Despertar + 1500 bits"},
+	{"pct": 75, "itens": {"cristal_despertar": 2}, "cristais": 5, "desc": "2 Cristais do Despertar + 5 Cristais de Ressonância"},
+	{"pct": 100, "desc": "??? (um segredo guardado pela árvore das almas)"},
+]
+var DEX_TEXT := {}
+var dex_premios := []  # marcos (pct) já resgatados
+
+
+func _load_dex_text() -> void:
+	var f := FileAccess.open("res://data/dex_textos.json", FileAccess.READ)
+	if f == null:
+		return
+	var d = JSON.parse_string(f.get_as_text())
+	if typeof(d) == TYPE_DICTIONARY:
+		for k in d.get("textos", {}):
+			DEX_TEXT[int(k)] = d["textos"][k]
+
+
+func dex_caught_count() -> int:
+	var n := 0
+	for id in dex_order():
+		if dex_caught.has(id):
+			n += 1
+	return n
+
+
+func dex_pct() -> int:
+	return int(floor(100.0 * dex_caught_count() / maxf(1.0, dex_order().size())))
+
+
+func dex_complete() -> bool:
+	return dex_caught_count() >= dex_order().size()
+
+
+## Todas as formas da linha já foram capturadas?
+func line_complete(id: int) -> bool:
+	for x in evo_line(id):
+		if not dex_caught.has(x):
+			return false
+	return true
+
+
+## Resgata o prêmio de um marco. Devolve true se deu certo.
+func claim_dex_marco(pct: int) -> bool:
+	if dex_premios.has(pct) or dex_pct() < pct:
+		return false
+	for m in DEX_MARCOS:
+		if int(m["pct"]) != pct:
+			continue
+		for k in m.get("itens", {}):
+			inventory[k] = int(inventory.get(k, 0)) + int(m["itens"][k])
+		bits += int(m.get("bits", 0))
+		cristais += int(m.get("cristais", 0))
+		dex_premios.append(pct)
+		return true
+	return false
+
+
+func dex_marcos_prontos() -> int:
+	var n := 0
+	for m in DEX_MARCOS:
+		if int(m["pct"]) < 100 and dex_pct() >= int(m["pct"]) and not dex_premios.has(int(m["pct"])):
+			n += 1
+	return n
 
 
 func rar_color(r: int) -> Color:
@@ -1573,6 +1655,7 @@ func new_game(starter: int) -> void:
 	badges = 0
 	badge_lv = {}
 	badge_eq = []
+	dex_premios = []
 	elo_charges = 6
 	intro_done = true
 	inventory = {"pocao": 5, "super_pocao": 1, "orbe_alma": 3, "fruta": 3, "chip_elo": 2, "ovo": 1, "mapa": 1}
@@ -2577,6 +2660,76 @@ func _debug_v30() -> void:
 	get_tree().quit()
 
 
+## Simulação de equilíbrio: em cada mapa (zonas 1, 5 e 10), um time típico
+## daquele ponto (3 Digialmas Raros do próprio mapa, na forma que o nível
+## permite; no mid game o líder está Desperto) enfrenta inimigos seguidos sem
+## curar. Mede quantas lutas aguenta e quantos golpes leva para vencer.
+func _debug_sim() -> void:
+	var out := []
+	for r in REGIONS.size():
+		for z in [1, 5, 10]:
+			var lv: int = zone_levels(r, z).x
+			var cands: Array = []
+			for id in ZONE_POOLS[r][2] + ZONE_POOLS[r][1]:
+				var cur: int = id
+				while MONSTERS[cur]["evo"].size() > 0 and int(MONSTERS[cur]["evo"][1]) <= lv:
+					cur = int(MONSTERS[cur]["evo"][0])
+				if not cands.has(cur):
+					cands.append(cur)
+			cands.sort_custom(func(a1, b1): return MONSTERS[a1]["atk"] + MONSTERS[a1]["hp"] > MONSTERS[b1]["atk"] + MONSTERS[b1]["hp"])
+			var wins_tot := 0
+			var hits_tot := 0
+			var fights := 0
+			for trial in 40:
+				var tm: Array = []
+				for i in mini(3, cands.size()):
+					var m := new_monster(cands[i], lv, 2)
+					if r >= 3 and i == 0:
+						m["desperto"] = true
+						if MONSTERS[m["id"]].has("desperta"):
+							m["id"] = int(MONSTERS[m["id"]]["desperta"])
+					m["hp"] = max_hp(m)
+					tm.append(m)
+				var wins := 0
+				while wins < 30:
+					var pool := zone_pool(r, z)
+					var e := new_monster(pool[randi() % pool.size()], randi_range(zone_levels(r, z).x, zone_levels(r, z).y), roll_rarity(0))
+					e["hp"] = max_hp(e)
+					var turn := 0
+					var alive := true
+					while e["hp"] > 0:
+						var li := -1
+						for i in tm.size():
+							if tm[i]["hp"] > 0:
+								li = i
+								break
+						if li < 0:
+							alive = false
+							break
+						var lm: Dictionary = tm[li]
+						var mvs: Array = MONSTERS[lm["id"]]["moves"]
+						var mk: String = mvs[mvs.size() - 1] if turn % 3 == 0 and mvs.size() > 2 else mvs[mini(1, mvs.size() - 1)]
+						e["hp"] -= calc_damage(lm, e, MOVES[mk], randf() < 0.12)
+						turn += 1
+						hits_tot += 1
+						if e["hp"] <= 0:
+							break
+						var emv: Array = MONSTERS[e["id"]]["moves"]
+						lm["hp"] -= int(calc_damage(e, lm, MOVES[emv[mini(1, emv.size() - 1)]], false) * 0.55)
+					if not alive:
+						break
+					wins += 1
+				wins_tot += wins
+				fights += wins
+			out.append("%s z%d Nv%d time=%s | lutas seguidas=%.1f | golpes por vitória=%.1f" % [REGIONS[r]["nome"], z, lv, str(cands.slice(0, 3).map(func(x): return MONSTERS[x]["nome"])), wins_tot / 40.0, hits_tot / maxf(1.0, fights)])
+	for l in out:
+		print("SIM ", l)
+	var f := FileAccess.open("res://_mid/sim.txt", FileAccess.WRITE)
+	if f:
+		f.store_string("\n".join(out))
+	get_tree().quit()
+
+
 ## Teste do mid game: confere dados/sprites das espécies novas e tira fotos
 ## do idle nos 3 mapas novos, do Mapa do Mundo e do Despertar com forma nova.
 func _debug_mid() -> void:
@@ -2676,6 +2829,32 @@ func _debug_mid() -> void:
 		snap.call("insignias")
 		menu.queue_free()
 	return_to = ""
+	# Digidex: coleção, prêmios, segredo e "além da evolução"
+	for x in [101, 102, 103, 151, 4, 154, 155]:
+		dex_register(new_monster(x, 30, 2))
+	print("dex: ", dex_caught_count(), "/", dex_order().size(), " pct=", dex_pct(), " prontos=", dex_marcos_prontos(), " ordem[0..12]=", dex_order().slice(0, 12))
+	var dx = load("res://scenes/digidex.tscn").instantiate()
+	get_tree().root.add_child(dx)
+	await get_tree().create_timer(0.5).timeout
+	dx._select(103)
+	await get_tree().create_timer(0.5).timeout
+	snap.call("dex_linha")
+	dx._select(4)
+	await get_tree().create_timer(0.5).timeout
+	snap.call("dex_capivolt")
+	dx._select_secret()
+	await get_tree().create_timer(1.0).timeout
+	snap.call("dex_segredo")
+	dx._show_premios()
+	await get_tree().create_timer(0.5).timeout
+	snap.call("dex_premios")
+	dx.queue_free()
+	var di = load("res://scenes/despertar_info.tscn").instantiate()
+	di.overlay = true
+	get_tree().root.add_child(di)
+	await get_tree().create_timer(0.5).timeout
+	snap.call("alem_da_evolucao")
+	di.queue_free()
 	# revanche na Floresta (purificada): duelo automático
 	debug_species = -9
 	region = 0

@@ -1491,6 +1491,8 @@ func _sanctuary_win() -> void:
 	if was == 2 and not Game.all_purified:
 		Game.all_purified = true
 		await _finale()
+		# explica o Despertar e a Ascensão (sem contar quem vira o quê)
+		_open_panel("res://scenes/despertar_info.tscn")
 	if was < Game.REGIONS.size() - 1:
 		Game.region = was + 1
 		Game.zone[was + 1] = 1
