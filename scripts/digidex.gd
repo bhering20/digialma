@@ -322,12 +322,52 @@ func _select(id: int) -> void:
 	ll.add_theme_color_override("font_color", Color("ffd84a"))
 	detail.add_child(ll)
 	var line := Game.evo_line(id)
-	var x := 12.0
+	# árvore: cada forma numa coluna pelo estágio; ramos vão para a linha de baixo
+	var pos := {}
+	var rows := [0]
+	var lay := func(f: Callable, n: int, depth: int, row: int) -> void:
+		pos[n] = Vector2(12.0 + depth * 38.0, 88.0 + row * 40.0)
+		var first := true
+		for c in Game._succ(Game.MONSTERS[n]):
+			if not line.has(c) or pos.has(c):
+				continue
+			var crow := row
+			if not first:
+				rows[0] += 1
+				crow = rows[0]
+			first = false
+			f.call(f, c, depth + 1, crow)
+	lay.call(lay, line[0], 0, 0)
 	for lid in line:
+		if not pos.has(lid):
+			rows[0] += 1
+			pos[lid] = Vector2(12.0, 88.0 + rows[0] * 40.0)
+	# ligações dos ramos
+	for lid in line:
+		for c in Game._succ(Game.MONSTERS[lid]):
+			if pos.has(c) and pos[c].y > pos[lid].y:
+				var ln := Line2D.new()
+				ln.width = 1.0
+				ln.default_color = Color(1, 0.85, 0.4, 0.5)
+				ln.points = PackedVector2Array([pos[lid] + Vector2(16, 34), pos[lid] + Vector2(16, pos[c].y - pos[lid].y + 16), pos[c] + Vector2(-2, 16)])
+				detail.add_child(ln)
+				var ou := Label.new()
+				ou.text = "ou"
+				ou.position = pos[lid] + Vector2(2, 44)
+				ou.add_theme_font_size_override("font_size", 7)
+				ou.add_theme_color_override("font_color", Color(1, 0.85, 0.4, 0.8))
+				detail.add_child(ou)
+	for lid in line:
+		var x: float = pos[lid].x
+		var y: float = pos[lid].y
 		var r := TextureRect.new()
 		r.texture = Game.menu_icon(lid)
 		r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		r.position = Vector2(x, 92)
+		r.position = Vector2(x, y)
+		if Game.seen.has(lid):
+			r.tooltip_text = Game.MONSTERS[lid]["nome"]
+		if int(Game.MONSTERS[line[0]].get("evo_guarda", -1)) == lid or _is_guard_child(lid):
+			r.tooltip_text = (r.tooltip_text + "\n" if r.tooltip_text != "" else "") + "Ramo da GUARDA: nasce de quem foi criado mais na defesa."
 		if not Game.seen.has(lid):
 			r.modulate = Color(0, 0, 0, 0.6)
 		elif not Game.dex_caught.has(lid):
@@ -335,7 +375,7 @@ func _select(id: int) -> void:
 		if lid == id:
 			var hl := ColorRect.new()
 			hl.color = Color(1, 0.85, 0.3, 0.25)
-			hl.position = Vector2(x - 2, 90)
+			hl.position = Vector2(x - 2, y - 2)
 			hl.size = Vector2(36, 36)
 			detail.add_child(hl)
 		detail.add_child(r)
@@ -345,18 +385,17 @@ func _select(id: int) -> void:
 			var mk := TextureRect.new()
 			mk.texture = Game.tex(UI % ("despertar" if fm == "D" else "ascensao"))
 			mk.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			mk.position = Vector2(x + 9, 124)
+			mk.position = Vector2(x + 9, y + 32)
 			mk.tooltip_text = "Despertar (4ª forma)" if fm == "D" else "Ascensão (5ª forma)"
 			mk.mouse_filter = Control.MOUSE_FILTER_PASS
 			detail.add_child(mk)
 		elif lv > 0:
 			var lvl := Label.new()
 			lvl.text = "Nv%d" % lv
-			lvl.position = Vector2(x + 2, 124)
+			lvl.position = Vector2(x + 2, y + 31)
 			lvl.add_theme_font_size_override("font_size", 8)
 			lvl.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
 			detail.add_child(lvl)
-		x += 38.0
 	var aw := Label.new()
 	aw.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var has_d := false
@@ -367,7 +406,9 @@ func _select(id: int) -> void:
 		aw.text = "Sol = DESPERTAR (Nv %d + Cristal). Estrela = ASCENSÃO. Veja ? FORMAS." % Game.AWAKEN_LV
 	else:
 		aw.text = "Forma final pode DESPERTAR depois de purificar os 3 mundos (Nv %d). Veja ? FORMAS." % Game.AWAKEN_LV
-	aw.position = Vector2(12, 136)
+	aw.position = Vector2(12, 136 + rows[0] * 40)
+	if rows[0] > 0:
+		aw.text = "Forma final pode DESPERTAR (Nv %d)." % Game.AWAKEN_LV
 	aw.size = Vector2(170, 40)
 	aw.custom_minimum_size = Vector2(170, 0)
 	aw.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -411,6 +452,15 @@ func _select(id: int) -> void:
 	leg.add_theme_font_size_override("font_size", 8)
 	leg.add_theme_color_override("font_color", Color("e8e0ff"))
 	detail.add_child(leg)
+
+
+## Forma que vem depois do ramo da Guarda (ex.: Muralhatu, depois de Tatumuro).
+func _is_guard_child(id: int) -> bool:
+	for k in Game.MONSTERS:
+		var g := int(Game.MONSTERS[k].get("evo_guarda", -1))
+		if g >= 0 and Game.MONSTERS[g]["evo"].size() > 0 and int(Game.MONSTERS[g]["evo"][0]) == id:
+			return true
+	return false
 
 
 func _evo_lv_into(id: int) -> int:
