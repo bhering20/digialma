@@ -1227,6 +1227,10 @@ func _load_mid() -> void:
 		MONSTERS[id] = md
 		MID_ART[id] = true
 		FOOT[id] = 88
+	# formas finais dos iniciais ganham Despertar com forma própria
+	var db: Dictionary = d.get("desperta_base", {})
+	for k in db:
+		MONSTERS[int(k)]["desperta"] = int(db[k])
 	# as espécies antigas agora evoluem para as formas novas
 	var eb: Dictionary = d.get("evo_base", {})
 	for k in eb:

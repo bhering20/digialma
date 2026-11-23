@@ -1171,46 +1171,211 @@ func _build_insignias() -> void:
 
 
 # ---------------------------------------------------------------- EQUIPE
+var eq_sel := -1  # índice na reserva escolhido para trocar
+
+
 func _build_equipe() -> void:
 	var cap := Game.team_cap()
-	for col in 2:
-		var arr: Array = Game.team if col == 0 else Game.reserve
-		var h := Label.new()
-		h.text = "EQUIPE  (%d/%d)" % [Game.team.size(), cap] if col == 0 else "RESERVA  (%d)" % Game.reserve.size()
-		h.add_theme_color_override("font_color", Color("ffd84a"))
-		h.position = Vector2(30 + col * 310, 4)
-		body.add_child(h)
-		var v := VBoxContainer.new()
-		v.position = Vector2(30 + col * 310, 22)
-		v.add_theme_constant_override("separation", 4)
-		body.add_child(v)
-		for i in arr.size():
-			var m: Dictionary = arr[i]
-			var b := Button.new()
-			b.custom_minimum_size = Vector2(270, 32)
-			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			b.text = "%s  Nv%d  ·  %s" % [Game.mon_title(m), m["lv"], Game.MONSTERS[m["id"]]["tipo"]]
-			b.add_theme_color_override("font_color", Game.rar_color(int(m.get("rar", 0))))
-			b.icon = Game.menu_icon(m["id"])
-			var idx := i
-			if col == 0:
-				b.disabled = Game.team.size() <= 1
-				b.tooltip_text = "Mandar para a reserva"
-				b.pressed.connect(func():
-					Game.reserve.append(Game.team[idx])
-					Game.team.remove_at(idx)
-					_build())
-			else:
-				b.disabled = Game.team.size() >= cap
-				b.tooltip_text = "Levar para a equipe"
-				b.pressed.connect(func():
-					Game.team.append(Game.reserve[idx])
-					Game.reserve.remove_at(idx)
-					_build())
-			v.add_child(b)
-		if col == 1 and arr.is_empty():
-			var e := Label.new()
-			e.text = "Ninguém ainda. Purifique raros (ou compre\nPurificação Automática no Elo)."
-			e.add_theme_font_size_override("font_size", 8)
-			v.add_child(e)
-	info.text = "Clique num Digialma para trocar de lado. Mais vagas: ELO > NOVA VAGA NA EQUIPE."
+	if eq_sel >= Game.reserve.size():
+		eq_sel = -1
+	var h := Label.new()
+	h.text = "EQUIPE  %d/%d" % [Game.team.size(), cap]
+	h.add_theme_color_override("font_color", Color("ffd84a"))
+	h.position = Vector2(16, 0)
+	body.add_child(h)
+	var h2 := Label.new()
+	h2.text = "RESERVA  %d" % Game.reserve.size()
+	h2.add_theme_color_override("font_color", Color("ffd84a"))
+	h2.position = Vector2(336, 0)
+	body.add_child(h2)
+	# equipe: cartões grandes, o primeiro é o líder (luta primeiro)
+	for i in cap:
+		var y := 18.0 + i * 54.0
+		if i >= Game.team.size():
+			var vz := Panel.new()
+			vz.position = Vector2(12, y)
+			vz.size = Vector2(312, 50)
+			vz.modulate = Color(1, 1, 1, 0.35)
+			body.add_child(vz)
+			var vl := Label.new()
+			vl.text = "vaga livre: clique num Digialma da reserva"
+			vl.position = Vector2(24, y + 17)
+			vl.add_theme_font_size_override("font_size", 8)
+			vl.add_theme_color_override("font_color", Color(1, 1, 1, 0.5))
+			body.add_child(vl)
+			continue
+		_team_card(Game.team[i], i, Vector2(12, y))
+	if cap < 5:
+		var mv := Label.new()
+		mv.text = "+ vagas: ELO > NOVA VAGA NA EQUIPE"
+		mv.position = Vector2(16, 18 + cap * 54)
+		mv.add_theme_font_size_override("font_size", 8)
+		mv.add_theme_color_override("font_color", Color(1, 1, 1, 0.45))
+		body.add_child(mv)
+	# reserva: grade de fichas
+	var sc := ScrollContainer.new()
+	sc.position = Vector2(334, 18)
+	sc.size = Vector2(296, 268)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	body.add_child(sc)
+	var g := GridContainer.new()
+	g.columns = 3
+	g.add_theme_constant_override("h_separation", 4)
+	g.add_theme_constant_override("v_separation", 4)
+	sc.add_child(g)
+	for i in Game.reserve.size():
+		g.add_child(_reserve_tile(Game.reserve[i], i))
+	if Game.reserve.is_empty():
+		var e := Label.new()
+		e.text = "Ninguém na reserva ainda.\nCapture raros para ter mais parceiros."
+		e.add_theme_font_size_override("font_size", 8)
+		g.add_child(e)
+	if eq_sel >= 0:
+		info.text = "Agora clique num Digialma da EQUIPE para trocar de lugar com %s." % Game.mon_name(Game.reserve[eq_sel])
+	else:
+		info.text = "Clique na reserva para levar à equipe. O LÍDER (1º) luta primeiro."
+
+
+func _mon_sprite(m: Dictionary, pos: Vector2, sc: float) -> AnimatedSprite2D:
+	var s := AnimatedSprite2D.new()
+	s.sprite_frames = Game.monster_frames(m["id"])
+	s.play("idle")
+	s.centered = false
+	s.offset = Game.foot_offset(m["id"])
+	s.scale = Vector2(sc, sc)
+	s.position = pos
+	if m.get("desperto", false):
+		s.modulate = Color(1.1, 1.05, 0.85)
+	return s
+
+
+func _team_card(m: Dictionary, i: int, pos: Vector2) -> void:
+	var b := Button.new()
+	b.position = pos
+	b.size = Vector2(312, 50)
+	b.focus_mode = Control.FOCUS_NONE
+	if eq_sel >= 0:
+		b.add_theme_stylebox_override("normal", Game.sb("slot_sel", 5))
+		b.tooltip_text = "Trocar com %s" % Game.mon_name(Game.reserve[eq_sel])
+	else:
+		b.tooltip_text = "Mandar para a reserva" if Game.team.size() > 1 else "A equipe precisa de pelo menos 1"
+	b.pressed.connect(func():
+		if eq_sel >= 0:
+			var r: Dictionary = Game.reserve[eq_sel]
+			Game.reserve[eq_sel] = Game.team[i]
+			Game.team[i] = r
+			eq_sel = -1
+		elif Game.team.size() > 1:
+			Game.reserve.append(Game.team[i])
+			Game.team.remove_at(i)
+		Game.sfx("item")
+		_build())
+	body.add_child(b)
+	var clip := Control.new()
+	clip.position = pos + Vector2(4, 2)
+	clip.size = Vector2(52, 46)
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(clip)
+	clip.add_child(_mon_sprite(m, Vector2(26, 44), 0.5))
+	var nm := Label.new()
+	nm.text = "%s  Nv%d" % [Game.mon_title(m), m["lv"]]
+	nm.position = pos + Vector2(60, 4)
+	nm.add_theme_font_size_override("font_size", 9)
+	nm.add_theme_color_override("font_color", Game.rar_color(int(m.get("rar", 0))).lightened(0.2))
+	body.add_child(nm)
+	var ti := TextureRect.new()
+	ti.texture = Game.tex("res://assets/ui/idle_tipo_%s.png" % Game.TYPE_SLUG.get(Game.MONSTERS[m["id"]]["tipo"], "normal"))
+	ti.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ti.position = pos + Vector2(60, 18)
+	ti.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(ti)
+	var hp := ProgressBar.new()
+	hp.show_percentage = false
+	hp.max_value = Game.max_hp(m)
+	hp.value = maxi(0, int(m["hp"]))
+	hp.position = pos + Vector2(78, 22)
+	hp.size = Vector2(150, 6)
+	hp.modulate = Color("6fe08a") if int(m["hp"]) > 0 else Color("8a8aa0")
+	hp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(hp)
+	var hl := Label.new()
+	hl.text = ("%d/%d" % [maxi(0, int(m["hp"])), Game.max_hp(m)]) if int(m["hp"]) > 0 else "alma (Orbe)"
+	hl.position = pos + Vector2(232, 17)
+	hl.add_theme_font_size_override("font_size", 7)
+	hl.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+	body.add_child(hl)
+	var xp := ProgressBar.new()
+	xp.show_percentage = false
+	xp.max_value = maxi(1, Game.xp_need(m))
+	xp.value = int(m.get("xp", 0))
+	xp.position = pos + Vector2(78, 32)
+	xp.size = Vector2(150, 3)
+	xp.modulate = Color("8ad8ff")
+	xp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(xp)
+	if i == 0:
+		var lt := Label.new()
+		lt.text = "LÍDER"
+		lt.position = pos + Vector2(262, 32)
+		lt.add_theme_font_size_override("font_size", 8)
+		lt.add_theme_color_override("font_color", Color("ffd84a"))
+		body.add_child(lt)
+	else:
+		var up := Button.new()
+		up.text = "LÍDER"
+		up.tooltip_text = "Colocar como líder (luta primeiro)"
+		up.position = pos + Vector2(256, 30)
+		up.custom_minimum_size = Vector2(50, 16)
+		up.add_theme_font_size_override("font_size", 7)
+		up.focus_mode = Control.FOCUS_NONE
+		up.pressed.connect(func():
+			var mm: Dictionary = Game.team[i]
+			Game.team.remove_at(i)
+			Game.team.insert(0, mm)
+			Game.sfx("item")
+			_build())
+		body.add_child(up)
+
+
+func _reserve_tile(m: Dictionary, i: int) -> Control:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(94, 76)
+	b.focus_mode = Control.FOCUS_NONE
+	if eq_sel == i:
+		b.add_theme_stylebox_override("normal", Game.sb("slot_sel", 5))
+	b.tooltip_text = "%s  Nv%d" % [Game.mon_title(m), m["lv"]]
+	b.pressed.connect(func():
+		if Game.team.size() < Game.team_cap():
+			Game.team.append(Game.reserve[i])
+			Game.reserve.remove_at(i)
+			eq_sel = -1
+		else:
+			eq_sel = -1 if eq_sel == i else i
+		Game.sfx("item")
+		_build())
+	var clip := Control.new()
+	clip.position = Vector2(4, 2)
+	clip.size = Vector2(86, 50)
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(clip)
+	clip.add_child(_mon_sprite(m, Vector2(43, 48), 0.5))
+	var nm := Label.new()
+	nm.text = Game.mon_name(m)
+	nm.clip_text = true
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.position = Vector2(2, 50)
+	nm.size = Vector2(90, 12)
+	nm.add_theme_font_size_override("font_size", 7)
+	nm.add_theme_color_override("font_color", Game.rar_color(int(m.get("rar", 0))).lightened(0.2))
+	b.add_child(nm)
+	var lv := Label.new()
+	lv.text = "Nv%d" % m["lv"]
+	lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lv.position = Vector2(2, 61)
+	lv.size = Vector2(90, 12)
+	lv.add_theme_font_size_override("font_size", 7)
+	lv.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
+	b.add_child(lv)
+	return b

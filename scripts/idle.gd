@@ -637,7 +637,40 @@ func _spawn_prop(x: float) -> void:
 	props.append(s)
 
 
+var party_ref: Array = []  # quem está desenhado na faixa (mesmas referências da equipe)
+
+
+## A equipe mudou no menu (troca com a reserva, líder novo)? Então redesenha.
+func _party_changed() -> bool:
+	if party_ref.size() != Game.team.size():
+		return true
+	for i in Game.team.size():
+		if not is_same(party_ref[i], Game.team[i]):
+			return true
+	return false
+
+
+func _respawn_party() -> void:
+	var x0: float = pets[0].position.x if pets.size() > 0 else 240.0
+	for p in pets:
+		if is_instance_valid(p):
+			p.queue_free()
+	for hb in hp_bars:
+		if is_instance_valid(hb):
+			hb.queue_free()
+	if is_instance_valid(kid):
+		kid.queue_free()
+	pets = []
+	hp_bars = []
+	_spawn_party()
+	for i in pets.size():
+		pets[i].position.x = x0 - i * 38
+	kid.position.x = x0 + 34
+	_refresh()
+
+
 func _spawn_party() -> void:
+	party_ref = Game.team.duplicate()
 	for i in Game.team.size():
 		var pet = R.Pet.new()
 		var m: Dictionary = Game.team[i]
@@ -739,6 +772,8 @@ func _loop() -> void:
 			waited += get_process_delta_time()
 		if not is_inside_tree():
 			return
+		if _party_changed() and not is_instance_valid(panel_win):
+			_respawn_party()
 		if not pending_evo.is_empty() and not hold_evo and not is_instance_valid(panel_win):
 			await _do_evolutions()
 			continue
@@ -989,6 +1024,8 @@ func _fight(e: Dictionary, m: AnimatedSprite2D, mat: ShaderMaterial) -> bool:
 	add_child(ebar)
 	var et: String = Game.MONSTERS[e["id"]]["tipo"]
 	while is_inside_tree():
+		if _party_changed():
+			_respawn_party()
 		var li := _lead_idx()
 		if li < 0:
 			ebar.queue_free()

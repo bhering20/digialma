@@ -1,5 +1,5 @@
 {
- "nota": "Espécies do mid game e formas novas das espécies antigas. \"evo_base\" liga as espécies originais (ids do jogo) às formas novas.",
+ "nota": "Espécies do mid game e formas novas das espécies antigas. \"evo_base\" liga as espécies originais (ids do jogo) às formas novas. \"desperta_base\" liga as formas finais dos iniciais às formas D.",
  "evo_base": {
   "16": [
    151,
@@ -1230,6 +1230,128 @@
    "jeito": "lendário",
    "forma": "A",
    "linha": "serp"
+  },
+  {
+   "id": 174,
+   "nome": "Selvaleo",
+   "tipo": "Planta",
+   "k": 1.6,
+   "perf": [
+    1.05,
+    1.0,
+    1.1
+   ],
+   "jeito": "majestoso",
+   "forma": "D",
+   "linha": "inicial",
+   "ascende": 175
+  },
+  {
+   "id": 175,
+   "nome": "Florarca",
+   "tipo": "Planta",
+   "k": 1.9,
+   "perf": [
+    1.05,
+    1.0,
+    1.1
+   ],
+   "jeito": "lendário",
+   "forma": "A",
+   "linha": "inicial"
+  },
+  {
+   "id": 176,
+   "nome": "Magmatatu",
+   "tipo": "Fogo",
+   "k": 1.6,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "furioso",
+   "forma": "D",
+   "linha": "inicial",
+   "ascende": 177
+  },
+  {
+   "id": 177,
+   "nome": "Solartatu",
+   "tipo": "Fogo",
+   "k": 1.9,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "radiante",
+   "forma": "A",
+   "linha": "inicial"
+  },
+  {
+   "id": 178,
+   "nome": "Fortalhatu",
+   "tipo": "Fogo",
+   "k": 1.6,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "inabalável",
+   "forma": "D",
+   "linha": "inicial",
+   "ascende": 179
+  },
+  {
+   "id": 179,
+   "nome": "Colossatu",
+   "tipo": "Fogo",
+   "k": 1.9,
+   "perf": [
+    1.0,
+    1.15,
+    0.95
+   ],
+   "jeito": "imponente",
+   "forma": "A",
+   "linha": "inicial"
+  },
+  {
+   "id": 180,
+   "nome": "Pororocão",
+   "tipo": "Água",
+   "k": 1.6,
+   "perf": [
+    1.1,
+    1.0,
+    1.05
+   ],
+   "jeito": "destemido",
+   "forma": "D",
+   "linha": "inicial",
+   "ascende": 181
+  },
+  {
+   "id": 181,
+   "nome": "Oceanarca",
+   "tipo": "Água",
+   "k": 1.9,
+   "perf": [
+    1.1,
+    1.0,
+    1.05
+   ],
+   "jeito": "sereno",
+   "forma": "A",
+   "linha": "inicial"
   }
- ]
+ ],
+ "desperta_base": {
+  "3": 174,
+  "9": 176,
+  "18": 178,
+  "14": 180
+ }
 }
