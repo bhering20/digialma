@@ -195,6 +195,8 @@ func _build_menu() -> void:
 	menu_box.visible = false
 	add_child(menu_box)
 	var items := [["NOVO JOGO", _on_new], ["CONTINUAR", _on_continue], ["MODO IDLE", _on_idle], ["OPÇÕES", _on_options], ["SAIR", _on_quit]]
+	if Game.TEST_BUILD:
+		items.insert(3, ["TESTE: MID GAME", _on_teste_mid])
 	for it in items:
 		var b := Button.new()
 		b.text = it[0]
@@ -445,7 +447,14 @@ func _on_idle() -> void:
 	# sem time ainda: começa direto na faixa com o Brasito
 	if Game.team.is_empty():
 		Game.new_game(7)
-	Game.region = mini(Game.badges, 2)
+	Game.region = mini(Game.badges, Game.REGIONS.size() - 1)
+	Game.change_scene("res://scenes/idle.tscn")
+
+
+## Só nas versões de teste: começa no Pântano Sombrio com um time pronto.
+## O save anterior é guardado em user://save_antes_do_teste.json.
+func _on_teste_mid() -> void:
+	Game.start_test_mid()
 	Game.change_scene("res://scenes/idle.tscn")
 
 

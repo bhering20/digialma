@@ -170,7 +170,7 @@ func _hud() -> void:
 	idle_btn.focus_mode = Control.FOCUS_NONE
 	idle_btn.add_theme_color_override("font_color", Color("ffd84a"))
 	idle_btn.pressed.connect(func():
-		Game.region = mini(Game.badges, 2)
+		Game.region = mini(Game.badges, Game.REGIONS.size() - 1)
 		Game.change_scene("res://scenes/idle.tscn"))
 	add_child(idle_btn)
 	var tree_btn := Button.new()

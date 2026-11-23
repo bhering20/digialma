@@ -542,7 +542,8 @@ void fragment() {
 
 
 # ---------------------------------------------------------------- SAVE
-const VERSION := "0.4"
+const VERSION := "0.6"
+const TEST_BUILD := true  # mostra "TESTE: MID GAME" no título (tirar no lançamento)
 const SAVE_PATH := "user://digialma_save.dat"
 const SAVE_KEYS := ["all_purified", "zone", "zone_max", "zone_kills", "zone_auto", "auto_rare_bonus", "elo_up", "gear", "gear_uid", "duel_queue", "idle_prog", "player_char", "player_name", "bits", "badges", "play_time", "inventory", "team", "reserve", "region_unlocked", "region", "elo_charges", "tutorial", "battle_count", "seen", "intro_done", "options", "cristais", "elo_lv", "elo_xp", "dex_caught", "badge_lv", "badge_eq", "dex_premios"]
 var last_seen := 0  # quando o jogo foi salvo pela última vez (para o progresso offline)
@@ -2728,6 +2729,42 @@ func _debug_sim() -> void:
 	if f:
 		f.store_string("\n".join(out))
 	get_tree().quit()
+
+
+## Save de teste: depois do Monte Brasa, entrando no Pântano Sombrio.
+func start_test_mid() -> void:
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(SAVE_PATH), ProjectSettings.globalize_path("user://save_antes_do_teste.json"))
+	new_game(7)
+	tutorial["idle"] = true
+	badges = 3
+	all_purified = true
+	region_unlocked = 4
+	region = 3
+	for r in 3:
+		zone[r] = 10
+		zone_max[r] = 10
+	zone[3] = 1
+	zone_max[3] = 1
+	elo_lv = 8
+	bits = 6000
+	cristais = 6
+	team = []
+	for pair in [[9, 57], [163, 55], [171, 55], [167, 55]]:
+		var m := make_partner(new_monster(pair[0], pair[1], 2))
+		if team.is_empty():
+			m["desperto"] = true
+		m["hp"] = max_hp(m)
+		if team.size() < team_cap():
+			team.append(m)
+		else:
+			reserve.append(m)
+		dex_register(m)
+	inventory["cristal_despertar"] = 2
+	inventory["orbe_alma"] = 8
+	inventory["super_pocao"] = 4
+	badge_autoequip()
+	save_game()
 
 
 ## Teste do mid game: confere dados/sprites das espécies novas e tira fotos
